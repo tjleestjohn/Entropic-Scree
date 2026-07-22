@@ -58,7 +58,7 @@ To identify the boundary between true structural signal and finite-sample noise 
 
 The Entropic Scree doesn't just count dimensions; it calculates their exact probabilistic weight, translating abstract eigenvalues into physical **Variable Equivalents**.
 
-* **Total Probabilistic Mass:** The dataset's total continuous probability mass, containing both unique and redundant signal volume and idiosyncratic noise (Structural Uncertainty and independent measurement error) volume.
+* **Total Probabilistic Volume:** The dataset's total continuous probability volume, containing both unique and redundant signal volume and idiosyncratic noise (Structural Uncertainty and independent measurement error) volume.
 * **AIG (Average Informational Gravity):** How much physical data (in column equivalents) the average extracted factor accounts for.
 * **FSG (Factor-Specific Gravity):** The specific structural weight of individual topological axes, allowing you to assess the ability to disentangle dominant macro-structures from weak, secondary interactions.
 
