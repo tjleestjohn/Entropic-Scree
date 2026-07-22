@@ -113,7 +113,7 @@ Copy and paste the following code block into your R console or RStudio to downlo
 
 ```R
 # 1. Define the direct URL to the raw script on GitHub
-url <- "[https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R](https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R)"
+url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R"
 
 # 2. Define what you want to name the file on your computer
 file_name <- "Entropic_Scree_R_Simulation - ENLI.R"
