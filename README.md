@@ -19,7 +19,7 @@
 >
 > If you have high-dimensional, mixed-type, noisy tabular data, standard Principal Component Analysis (PCA) will lie to you about its true dimensionality.
 >
-> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to reveal the true underlying generative rank of your data. It bypasses algebraic sample-size limits ($m > N$), handles non-linear interactions natively, and provides actionable engineering metrics (Informational Gravity) to map the true geometry of enterprise data swamps.
+> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to reveal the true underlying generative rank of your data. It bypasses algebraic sample-size limits ($m > N$), handles non-linear interactions natively, and provides actionable engineering metrics (Informational Gravity) to map the true geometry of your data.
 
 ---
 
