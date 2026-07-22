@@ -147,3 +147,4 @@ This methodology is formally introduced in an upcoming preprint. Once published,
 | **From Garbage to Gold: A Data Architectural Theory of Predictive Robustness (Preprint)** | [arXiv cs.LG](https://arxiv.org/abs/2603.12288) |
 | **G2G Preprint Simulation Repository** | [From Garbage to Gold GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
 | **Contact First Author** | [Email Me](mailto:terry@enli.com.au) |
+| **Enli** | [Predictive systems that remain stable under change](https://www.enli.com.au) |
