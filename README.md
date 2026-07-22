@@ -23,7 +23,7 @@
 
 ---
 
-## 🏗️ Standard PCA Limitations
+## Standard PCA Limitations
 
 For over a century, the universal standard for evaluating a dataset's representational rank has been PCA and its variance-based scree plot. However, when deployed in modern, complex data environments, standard linear matrices suffer a **Structural Collapse** across four dimensions:
 
@@ -34,7 +34,7 @@ For over a century, the universal standard for evaluating a dataset's representa
 
 **The Result:** PCA tells you your data is driven by 600 weak linear components, when it is actually driven by 10 highly non-linear, robust macro-structures.
 
-## 🧬 The Solution: Information-Theoretic Geometry
+## The Solution: Information-Theoretic Geometry
 
 The Entropic Scree methodology resolves this by shifting the math from linear Euclidean space into topological information space.
 
