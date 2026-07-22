@@ -106,7 +106,7 @@ This repository includes a fully-annotated simulation in R that is **available t
 **Notes:**
 * **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
 * **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading natively in RAM.
-* **Interactive Mode:** The script pauses at the diagnostic elbow to provide a visual plot preview, allowing the user to confirm or manually override the rank and view the updated gravity constraints in real-time.
+* **Interactive Mode (User Input Required):** The script pauses at the diagnostic elbow to provide a visual plot preview, requiring the user to confirm or manually override the rank in the R console. **While you cannot "select all and run" the entire file at once, you can safely select and run everything from the top down to (and including) the `calculate_entropic_scree()` function call in Section 4.** Once you confirm the rank in the console, you can run the rest of the script.
 
 ### Quick Start
 Copy and paste the following code block into your R console or RStudio to download and open the script directly:
