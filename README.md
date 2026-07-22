@@ -54,7 +54,7 @@ To identify the boundary between true structural signal and finite-sample noise 
 
 ---
 
-## ⚖️ Actionable Engineering Metrics (AIG & FSG)
+## ⚖️ Actionable Engineering Metrics (AIG & FSIG)
 
 The Entropic Scree doesn't just count dimensions; it calculates their exact probabilistic weight, translating abstract eigenvalues into physical **Variable Equivalents**.
 
