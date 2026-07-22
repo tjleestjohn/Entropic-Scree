@@ -64,7 +64,7 @@ The Entropic Scree doesn't just count dimensions; it calculates their exact prob
 * **Total Signal Footprint:** The combined volume of the signal axes (the sum of the Unique and Redundant Signal Volumes).
 * **Idiosyncratic Noise Volume:** The remaining unshared probability volume consisting of Structural Uncertainty and independent Measurement Error.
 * **AIG (Average Informational Gravity):** How much physical data (in column equivalents) the average extracted signal factor accounts for.
-* **FSIG (Factor-Specific Informational Gravity):** The specific structural weight of individual topological signal axes, allowing you to assess the ability to disentangle dominant signals from weak, secondary signals.
+* **FSIG (Factor-Specific Informational Gravity):** The specific structural weight of individual signal axes, allowing you to assess the ability to disentangle dominant signals from weak, secondary signals.
 
 ---
 
