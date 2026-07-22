@@ -3,7 +3,7 @@
 
 *by [Terrence J. Lee-St. John, PhD](mailto:terry@enli.com.au)*
 
-*Enli: www.enli.com.au*
+*Enli - Predictive Systems that Remain Stable Under Change:  www.enli.com.au*
 
 **Links**
 
