@@ -54,7 +54,7 @@ To identify the boundary between true structural signal and finite-sample noise 
 
 ---
 
-## ⚖️ Actionable Engineering Metrics (AIG & FSIG)
+## Actionable Engineering Metrics (AIG & FSIG)
 
 The Entropic Scree doesn't just count dimensions; it calculates their exact probabilistic weight, translating abstract eigenvalues into physical **Variable Equivalents**.
 
@@ -68,7 +68,7 @@ The Entropic Scree doesn't just count dimensions; it calculates their exact prob
 
 ---
 
-## 📐 Testing Linear Sufficiency ($\Delta_K$)
+## Testing Linear Sufficiency ($\Delta_K$)
 
 The Entropic Scree can also be utilized as a formal diagnostic bounding box for PCA itself. By comparing the rank extracted by classical PCA ($K_{rlzd}$) against the structural rank mapped by the Entropic Scree ($K_{elbow}$), practitioners can calculate the **Dimensional Inflation Index ($\Delta_K$)**:
 
@@ -87,7 +87,7 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 
 ---
 
-## <a id="-installation"></a>📦 Python and R Installation (Coming Soon)
+## <a id="-installation"></a>📦 Python and R Package Installation (Coming Soon)
 
 *Native packages for Python (via PyPI) and R (via CRAN) are currently in active development and will be released shortly. In the meantime, please utilize the standalone R simulation script below.*
 
@@ -131,7 +131,7 @@ file.edit(file_name)
 
 ---
 
-## 📬 Citation & Contact
+## Citation & Contact
 
 This methodology is formally introduced in an upcoming preprint. Once published, the arXiv link and full BibTeX citation will be updated here.
 
