@@ -50,7 +50,7 @@ By utilizing a highly optimized, C++ backend to evaluate this matrix, the Entrop
 ### Automated Elbow Detection
 To identify the boundary between true structural signal and finite-sample noise (the Marchenko-Pastur bulk), the script employs a log-space algorithmic assessment. It scans backward from the deep noise tail, estimating the true structural elbow only when it detects a massive, sustained phase transition, safely ignoring localized noise ripples.
 
-**🔍 Heuristic Warning:** The current form of the automatic elbow detector is provided strictly as a convenience heuristic. Because real-world noise distributions can vary unpredictably, the user should visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to ensure the correct generative rank is selected.
+**⚠️ Heuristic Warning ⚠️** The current form of the automatic elbow detector is provided strictly as a convenience heuristic. Because real-world noise distributions can vary unpredictably, the user should visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to ensure the correct generative rank is selected.
 
 ---
 
@@ -79,7 +79,7 @@ $$ \Delta_K = K_{rlzd} - K_{elbow} $$
 
 ---
 
-## ⚠️ Important Note on Factor Extraction / Dimensionality Reduction
+## ⚠️ Important Note on Factor Extraction / Dimensionality Reduction ⚠️
 
 As detailed in the formal paper, the Entropic Scree is a **diagnostic oracle, not a linear projection matrix**.
 
