@@ -17,20 +17,20 @@
 
 > **TL;DR**
 >
-> If you have high-dimensional, mixed-type, noisy tabular data, standard Principal Component Analysis (PCA) will lie to you about its true dimensionality.
+> If you have high-dimensional, mixed-type, noisy tabular data, standard Principal Component Analysis (PCA) will systematically misrepresent its true dimensionality. Standard topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration. 
 >
-> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to reveal the true underlying generative rank of your data. It bypasses algebraic sample-size limits ($m > N$), handles non-linear interactions natively, and provides actionable engineering metrics (Informational Gravity) to map the true geometry of your data.
+> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to reveal the true underlying generative rank of your data. It bypasses algebraic sample-size limits ($m > N$), handles non-linear interactions natively, and provides actionable engineering metrics (Informational Gravity) to map the true topology of your data.
 
 ---
 
-## Standard PCA Limitations
+## Structural Constraints of Linear Estimators
 
-For over a century, the universal standard for evaluating a dataset's representational rank has been PCA and its variance-based scree plot. However, when deployed in modern, complex data environments, standard linear matrices suffer a **Structural Collapse** across four dimensions:
+For over a century, the universal standard for evaluating a dataset's representational rank has been PCA and its variance-based scree plot. However, when deployed in modern, complex data environments, standard linear matrices systematically degrade across four dimensions:
 
 1. **Mixed-Data Penalty:** Linear correlation deflates when continuous waves are evaluated against discrete categorical step-functions.
 2. **Non-Linear Blindness:** Pure linear estimators ignore synergistic, thresholded, or polynomial dependencies.
-3. **Sample-Size Prison:** If you have more variables than observations ($m > N$), PCA hits a hard algebraic wall, permanently capping extractable rank at $N-1$.
-4. **Orthogonal Splintering:** Because linear matrices cannot map non-linear states, they shatter continuous generative drivers into hundreds of fragmented, spurious linear dimensions (Dimensional Inflation).
+3. **The Algebraic Rank Constraint:** If you have more variables than observations ($m > N$), PCA hits a hard algebraic wall, permanently capping extractable rank at $N-1$.
+4. **Spurious Orthogonalization (Dimensional Inflation):** Because linear matrices cannot map non-linear states, they fragment continuous generative drivers into hundreds of spurious, independent linear dimensions.
 
 **The Result:** PCA tells you your data is driven by 600 weak linear components, when it is actually driven by 10 highly non-linear, robust macro-structures.
 
@@ -43,19 +43,21 @@ To guarantee global geometric coherence and enforce a strict metric space, the f
 $$ \mathcal{M}_{i,j} = \frac{I(X_i; X_j)}{H(X_i) + H(X_j) - I(X_i; X_j)} $$
 
 ### Double-Centering Bias Correction (cMDS)
-Because eigendecomposition cannot operate on raw distances, and empirical mutual information estimators suffer from a strictly positive finite-sample bias, the framework executes a **double-centering transformation** ($\mathcal{M}_c = H \mathcal{M} H$) prior to decomposition. This single operation serves a dual mathematical purpose:
-1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space. 
-2. It algebraically neutralizes the positive estimation bias, perfectly centering the Marchenko-Pastur noise bulk at zero and leaving the matrix to map pure **Topological Information Variance**.
+Because eigendecomposition cannot operate on raw similarities, and empirical mutual information estimators suffer from a strictly positive finite-sample bias, the framework executes a **double-centering transformation** ($\mathcal{M}_c = H \mathcal{M} H$) prior to decomposition. This single operation serves a dual mathematical purpose:
+1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space, natively embedding the square root of the Normalized Variation of Information ($\sqrt{NVI}$) to ensure Positive Semi-Definiteness. 
+2. It algebraically mitigates positive estimation bias, perfectly centering the macroscopic noise bulk at zero and leaving the matrix to map pure **Topological Information Variance**.
 
-By utilizing a highly optimized, C++ backend to evaluate this matrix, the Entropic Scree:
+By utilizing a highly optimized C++ backend to evaluate this matrix, the Entropic Scree:
 * Evaluates pure shared dependency via Copula Theory (Sklar's Theorem), completely immune to marginal shape mismatches.
 * Subsumes non-linear and discrete relationships back into their root generative source.
 * Easily computes an $m \times m$ pairwise matrix regardless of sample size, utterly breaking the $N-1$ algebraic ceiling enforced by standard PCA.
 
-### Automated Elbow Detection
-To identify the boundary between true structural signal and finite-sample noise (the Marchenko-Pastur bulk), the script employs a log-space algorithmic assessment. It scans backward from the deep noise tail using a sequential Triple-Tap scanner, estimating the true structural elbow only when it detects a massive, sustained phase transition (requiring a strict $15\sigma$ breakout) to safely ignore localized noise ripples. In sparse or highly modular environments where a dense continuous noise bulk is absent, the algorithm seamlessly defaults to a robust deterministic fallback: the **Maximum Secondary Spectral Gap**.
+### The Diagnostic Framework and Automated Scanner
+Exactly like Cattell's classical variance-based scree test, the Entropic Scree is fundamentally designed as a **visual diagnostic framework**. Visual inspection of the log-linear spectral decay remains the gold standard for identifying the structural elbow that separates the generative signal from the idiosyncratic noise baseline.
 
-**⚠️ Heuristic Warning ⚠️** The current form of the automatic elbow detector is provided strictly as a convenience heuristic. Because real-world noise distributions can vary unpredictably, the user should visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to ensure the correct generative rank is selected.
+However, to provide an optional baseline convenience utility for rapid environments, the script employs an automated log-space scanner. It scans backward from the deep noise tail using a sequential rolling regression, estimating the structural elbow when it detects a massive, sustained phase transition (requiring a strict $10\sigma$ breakout). In sparse or highly modular environments where a dense continuous noise bulk is absent, the algorithm seamlessly defaults to a robust deterministic fallback: the **Maximum Secondary Spectral Gap**.
+
+**⚠️ Heuristic Warning ⚠️** The automated scanner is provided strictly as a computationally tractable heuristic proxy, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to ensure the correct generative rank is selected.
 
 ---
 
@@ -79,8 +81,8 @@ The Entropic Scree can also be utilized as a formal diagnostic bounding box for 
 
 $$ \Delta_K = K_{rlzd} - K_{elbow} $$
 
-* **Convergence ($\Delta_K \approx 0$):** Linear sufficiency confirmed. The data is well-approximated by a simple linear factor model, meaning orthogonal splintering is negligible and classical PCA is safe to use.
-* **Divergence ($\Delta_K \gg 0$):** Severe dimensional inflation detected. Standard linear estimators are shattering non-linear synergies or mixed-data shapes, strongly motivating the use of non-linear manifold learning architectures.
+* **Convergence ($\Delta_K \approx 0$):** Linear sufficiency confirmed. The data is well-approximated by a simple linear factor model, meaning spurious orthogonalization is negligible and classical PCA is likely sufficient.
+* **Divergence ($\Delta_K \gg 0$):** Severe dimensional inflation detected. Standard linear estimators are fragmenting non-linear synergies or mixed-data shapes, strongly motivating the use of non-linear manifold learning architectures.
 
 ---
 
@@ -110,7 +112,7 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 
 ## <a id="-usage-r-script"></a>💻 Simulation (R Script)
 
-This repository includes a fully-annotated simulation in R that is **available to run now**. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, sparse and highly modular network topology, $\sim 99.5\%$ idiosyncratic noise, non-linear distortion), demonstrates the structural collapse of standard PCA, and utilizes the Entropic Scree to extract the true generative rank ($r=10$).
+This repository includes a fully-annotated simulation in R that is **available to run now**. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, sparse and highly modular network topology, $\sim 99.5\%$ idiosyncratic noise, non-linear distortion), demonstrates the systematic degradation of standard PCA, and utilizes the Entropic Scree to extract the true generative rank ($r=10$).
 
 **Notes:**
 * **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
