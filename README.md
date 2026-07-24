@@ -145,7 +145,7 @@ The full methodology is formally introduced in an upcoming preprint. Once publis
 ```bibtex
 % Coming Soon
 @article{leestjohn2026entropic-scree,
-  title={The Entropic Scree: A Universal Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
+  title={The Entropic Scree: Towards a Universal Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
   author={Lee-St. John, Terrence J.},
   journal={arXiv preprint (*Coming Soon*)},
   year={2026}
@@ -154,7 +154,7 @@ The full methodology is formally introduced in an upcoming preprint. Once publis
 
 | **Related Resources** | **Link** |
 | --- | --- |
-| **The Entropic Scree: A Universal Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (Preprint)** | *Coming Soon* |
+| **The Entropic Scree: Towards a Universal Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (Preprint)** | *Coming Soon* |
 | **From Garbage to Gold: A Data Architectural Theory of Predictive Robustness (Preprint)** | [arXiv cs.LG](https://arxiv.org/abs/2603.12288) |
 | **G2G Preprint Simulation Repository** | [From Garbage to Gold GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
 | **Contact First Author** | [Email Me](mailto:terry@enli.com.au) |
