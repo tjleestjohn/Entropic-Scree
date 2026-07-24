@@ -6,12 +6,11 @@
 # 
 # Description: Generates a high-dimensional, mixed-type, noisy synthetic 
 # dataset to demonstrate the structural collapse of standard PCA, and utilizes 
-# the Entropic Scree to flawlessly extract the true Latent Generative Rank.
+# the Entropic Scree to extract the Latent Generative Rank (r).
 # ==============================================================================
 
 rm(list = ls())
 gc(verbose = FALSE)
-
 
 # List of all required packages (added pkgbuild for robust Rtools checking)
 required_packages <- c("Rcpp", "data.table", "infotheo", "ggplot2", "patchwork", "MASS", "stringr", "pkgbuild")
@@ -148,14 +147,14 @@ calculate_entropic_scree <- function(data
     dup_cols <- duplicated(as.list(dt))
     if (any(dup_cols)) dt <- dt[, !dup_cols, with = FALSE]
   } else {
-    cat("[1/9] Skipping constant and duplicate purge (user requested)...\n")
+    cat("[1/10] Skipping constant and duplicate purge (user requested)...\n")
   }
   
   # ----------------------------------------------------------------------------
   # [2/9] MULTIVARIATE COLLINEARITY CHECK
   # ----------------------------------------------------------------------------
   if (check_collinearity) {
-    cat("[2/9] Checking for perfect multivariate linear combinations...\n")
+    cat("[2/10] Checking for perfect multivariate linear combinations...\n")
     num_cols <- names(dt)[sapply(dt, is.numeric)]
     if (length(num_cols) > 1 && nrow(dt) > length(num_cols)) {
       
@@ -185,10 +184,10 @@ calculate_entropic_scree <- function(data
       }
     }
   } else {
-    cat("[2/9] Skipping collinearity check (user requested)...\n")
+    cat("[2/10] Skipping collinearity check (user requested)...\n")
   }
   
-  cat("[3/9] Discretizing continuous data and dense-ranking categoricals...\n")
+  cat("[3/10] Discretizing continuous data and dense-ranking categoricals...\n")
   if (is.null(num_bins)) {
     num_bins <- max(2, floor(bin_multiplier * nrow(dt)^(1/3))) 
   }
@@ -202,14 +201,14 @@ calculate_entropic_scree <- function(data
     }
   })]
   
-  cat("[4/9] Purging non-linear monotonic duplicates and locking types...\n")
+  cat("[4/10] Purging non-linear monotonic duplicates and locking types...\n")
   dup_cols_post <- duplicated(as.list(dt))
   if (any(dup_cols_post)) dt <- dt[, !dup_cols_post, with = FALSE]
   
   valid_cols <- names(dt)
   dt[, (valid_cols) := lapply(.SD, function(x) as.integer(as.factor(x)))]
   
-  cat("[5/9] Calculating marginal entropies and purging near-constants...\n")
+  cat("[5/10] Calculating marginal entropies and purging near-constants...\n")
   H_vec <- sapply(dt, infotheo::entropy)
   valid_vars <- names(H_vec)[H_vec >= low_entropy_thresh]
   if (length(H_vec) > length(valid_vars)) {
@@ -220,7 +219,7 @@ calculate_entropic_scree <- function(data
   p <- ncol(dt)
   if (p < 2) stop("Execution Halted: Less than 2 valid variables remain.")
   
-  cat(sprintf("[6/9] Computing %d x %d Mutual Information Matrix (C++ OpenMP)...\n", p, p))
+  cat(sprintf("[6/10] Computing %d x %d Mutual Information Matrix (C++ OpenMP)...\n", p, p))
   
   mat_data <- as.matrix(dt)
   bin_sample_sizes <- apply(mat_data, 2, tabulate)
@@ -231,7 +230,7 @@ calculate_entropic_scree <- function(data
   MI_mat <- fast_parallel_MI(mat_data, num_bins = num_bins, cores = safe_target_cores)
   rownames(MI_mat) <- colnames(MI_mat) <- valid_vars
   
-  cat("[7/9] Applying Joint Entropy (Jaccard) Normalization...\n")
+  cat("[7/10] Applying Joint Entropy (Jaccard) Normalization...\n")
   sum_H_mat <- outer(H_vec, H_vec, FUN = "+")
   joint_H_mat <- sum_H_mat - MI_mat
   joint_H_mat[joint_H_mat < 1e-9] <- 1e-9
@@ -239,11 +238,27 @@ calculate_entropic_scree <- function(data
   NMI_mat <- MI_mat / joint_H_mat
   diag(NMI_mat) <- 1.0
   
-  cat("[8/9] Extracting Entropic Latent Factors (Eigen Decomposition)...\n")
-  eigen_res <- eigen(NMI_mat, symmetric = TRUE)
+  cat("[8/10] Applying Double-Centering (cMDS / RMT Bias Correction)...\n")
+  m_valid <- length(valid_vars)
+  
+  # Vectorized Double-Centering
+  row_means <- rowMeans(NMI_mat)
+  grand_mean <- mean(row_means)
+  
+  NMI_mat_c <- NMI_mat - outer(row_means, row_means, FUN = "+") + grand_mean
+  
+  # Calculate trace of the centered matrix
+  Tr_Mc <- sum(diag(NMI_mat_c))
+  mean_trace <- Tr_Mc / m_valid
+  
+  cat("[9/10] Extracting Entropic Latent Factors (Eigen Decomposition)...\n")
+  eigen_res <- eigen(NMI_mat_c, symmetric = TRUE)
   eig_vals <- pmax(eigen_res$values, 1e-9)
   
-  cat("[9/9] Calculating R_eff and Backward Scan Spectral Elbow...\n")
+  # Constructive Spectral Mass (sum of positive clipped eigenvalues)
+  m_plus <- sum(eig_vals)
+  
+  cat("[10/10] Calculating R_eff and Backward Scan Spectral Elbow...\n")
   sig_vals <- eig_vals[eig_vals > 0]
   if (length(sig_vals) > 0) {
     p_vals <- sig_vals / sum(sig_vals)
@@ -257,7 +272,7 @@ calculate_entropic_scree <- function(data
   # DIAGNOSTIC ONLY: MACRO GAP (NOISE CLIFF BOUNDARY)
   # ==========================================================================
   n_total <- length(eig_vals)
-  valid_k <- sum(eig_vals > 1.0) 
+  valid_k <- sum(eig_vals > mean_trace) 
   
   macro_max_noise_gap <- NA_real_
   macro_actual_gap <- NA_real_
@@ -276,7 +291,7 @@ calculate_entropic_scree <- function(data
       noise_gaps <- all_gaps_diag[noise_tail_idx]
       max_noise_gap <- max(noise_gaps)
       
-      macro_multiplier <- 10
+      macro_multiplier <- 20
       gap_threshold <- max(1e-6, max_noise_gap * macro_multiplier) 
       
       macroscopic_gap_indices <- which(all_gaps_diag > gap_threshold)
@@ -294,16 +309,19 @@ calculate_entropic_scree <- function(data
   # ==========================================================================
   
   # --- BASE FALLBACK: MAXIMUM SECONDARY SPECTRAL GAP ---
-  if (n_total >= 3) {
-    all_gaps <- abs(diff(eig_vals))
-    # Exclude the first gap (between lambda_1 and lambda_2) due to Perron-Frobenius
+  # Filter out the forced geometric zeros caused by double-centering
+  valid_search_space <- eig_vals[eig_vals > 1e-8]
+  n_valid_search <- length(valid_search_space)
+  
+  if (n_valid_search >= 3) {
+    all_gaps <- abs(diff(valid_search_space))
+    # Exclude the first gap (between lambda_1 and lambda_2) 
     secondary_gaps <- all_gaps[2:length(all_gaps)] 
-    # Index is shifted by 1 relative to the true gap
     fallback_k <- which.max(secondary_gaps) + 1
     elbow_method <- "Maximum Secondary Spectral Gap"
   } else {
     fallback_k <- max(1, valid_k)
-    elbow_method <- "Kaiser Criterion (> 1.0)"
+    elbow_method <- "Kaiser Criterion (> Mean Trace)"
   }
   
   K_elbow <- fallback_k
@@ -315,7 +333,7 @@ calculate_entropic_scree <- function(data
     window_size <- max(5, floor(n_total * 0.05)) 
     log_vals <- log(eig_vals)
     min_sigma <- 1e-4
-    sigma_multiplier <- 10
+    sigma_multiplier <- 20
     
     start_k <- n_total - 2
     
@@ -360,13 +378,12 @@ calculate_entropic_scree <- function(data
   # ============================================================================
   # WAVE 1: INITIAL OUTPUT & METRICS
   # ============================================================================
-  m_valid <- length(valid_vars)
   pct_prob_volume <- (R_eff / m_valid) * 100
   pct_redundant_signal <- (1 - (R_eff / m_valid)) * 100
   redundant_signal_volume <- m_valid - R_eff
   
-  n_eigen_gt_1 <- valid_k
-  n_eigen_le_1 <- n_total - valid_k
+  n_eigen_gt_mean <- valid_k
+  n_eigen_le_mean <- n_total - valid_k
   
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     # ZOOMED VIEW
@@ -380,7 +397,7 @@ calculate_entropic_scree <- function(data
       ggplot2::geom_vline(xintercept = K_elbow, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
       ggplot2::scale_y_continuous(trans = 'log10') +
       ggplot2::scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)))))) +
-      ggplot2::labs(title = "Zoomed View", x = "Eigenvalue Index (m)", y = "Log(Eigenvalue)") +
+      ggplot2::labs(title = "Zoomed View", x = "Eigenvalue Index", y = "Log(Eigenvalue)") +
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
     
@@ -395,7 +412,7 @@ calculate_entropic_scree <- function(data
       ggplot2::geom_vline(xintercept = K_elbow, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
       ggplot2::scale_y_continuous(trans = 'log10') +
       ggplot2::coord_cartesian(ylim = c(NA, macro_y_max)) + 
-      ggplot2::labs(title = "Macro View", x = "Eigenvalue Index (m)", y = "Log(Eigenvalue)") +
+      ggplot2::labs(title = "Macro View", x = "Eigenvalue Index", y = "Log(Eigenvalue)") +
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
     
@@ -418,16 +435,17 @@ calculate_entropic_scree <- function(data
   cat(" STRUCTURAL COMPOSITION\n")
   cat("=================================================================\n")
   cat(sprintf(" -> %-50s : %d\n", "Valid Variables (m)", m_valid))
+  cat(sprintf(" -> %-50s : %.2f\n", "Centered Trace (Tr_Mc)", Tr_Mc))
   cat("-----------------------------------------------------------------\n")
   cat(sprintf(" -> %-50s : %.2f\n", "Total Unique Probabilistic Volume (R_eff)", R_eff))
   cat(sprintf(" -> %-50s : %.1f%%\n", "%", pct_prob_volume))
   cat("      (Unique Signal + Structural Uncertainty + \u22A5 Measurement Error)\n")
   cat("-----------------------------------------------------------------\n")
-  cat(sprintf(" -> %-50s : %.2f\n", "Redundant Signal Volume (m - R_eff)", redundant_signal_volume))
+  cat(sprintf(" -> %-50s : %.2f\n", "Redundant Signal Volume (Tr_Mc - R_eff)", redundant_signal_volume))
   cat(sprintf(" -> %-50s : %.1f%%\n", "%", pct_redundant_signal))
   cat("-----------------------------------------------------------------\n")
-  cat(sprintf(" -> %-50s : %d\n", "Eigenvalues > 1.0", n_eigen_gt_1))
-  cat(sprintf(" -> %-50s : %d\n", "Eigenvalues <= 1.0", n_eigen_le_1))
+  cat(sprintf(" -> %-50s : %d\n", "Eigenvalues > Mean Trace", n_eigen_gt_mean))
+  cat(sprintf(" -> %-50s : %d\n", "Eigenvalues <= Mean Trace", n_eigen_le_mean))
   cat("=================================================================\n\n")
   
   cat("=================================================================\n")
@@ -479,10 +497,10 @@ calculate_entropic_scree <- function(data
           cat(sprintf("\n[+] Rank manually updated to %d.\n", K_final))
           
           # ====================================================================
-          # RESTORED: INTERACTIVE GRAPH PREVIEW & METRICS
+          # INTERACTIVE GRAPH PREVIEW & METRICS
           # ====================================================================
           if (requireNamespace("ggplot2", quietly = TRUE)) {
-            # 1. ZOOMED VIEW (Updated)
+            # 1. ZOOMED VIEW
             zoom_start_upd <- max(1, min(K_elbow, K_final) - 5)
             zoom_end_upd <- min(length(eig_vals), max(K_elbow, K_final) + 15)
             
@@ -506,7 +524,7 @@ calculate_entropic_scree <- function(data
               ggplot2::theme_minimal(base_size = 14) +
               ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
             
-            # 2. MACRO VIEW (Updated)
+            # 2. MACRO VIEW
             macro_end_upd <- min(length(eig_vals), max(50, K_final * 3, K_elbow * 3))
             plot_df_macro_upd <- data.frame(
               Rank = 1:macro_end_upd,
@@ -550,7 +568,7 @@ calculate_entropic_scree <- function(data
           
           # --- PREVIEW GRAVITY CALCULATIONS ---
           signal_variance_prev <- sum(eig_vals[1:K_final])
-          signal_weight_prev <- signal_variance_prev / m_valid
+          signal_weight_prev <- signal_variance_prev / m_plus
           unique_signal_volume_prev <- R_eff * signal_weight_prev
           total_signal_volume_prev <- unique_signal_volume_prev + redundant_signal_volume
           
@@ -578,7 +596,7 @@ calculate_entropic_scree <- function(data
   
   # --- FINAL GRAVITY CALCULATIONS ---
   signal_variance <- sum(eig_vals[1:K_final])
-  signal_weight <- signal_variance / m_valid
+  signal_weight <- signal_variance / m_plus
   unique_signal_volume <- R_eff * signal_weight
   total_signal_volume <- unique_signal_volume + redundant_signal_volume
   
@@ -600,13 +618,14 @@ calculate_entropic_scree <- function(data
   # WAVE 3: FINAL TRIPARTITE STRUCTURAL COMPOSITION
   # ============================================================================
   noise_variance <- sum(eig_vals[(K_final + 1):m_valid])
-  noise_weight <- noise_variance / m_valid
+  noise_weight <- noise_variance / m_plus
   idiosyncratic_noise_volume <- R_eff * noise_weight
   
   cat("=================================================================\n")
   cat(sprintf(" (FINAL) TRIPARTITE STRUCTURAL COMPOSITION (based user-confirmed K_elbow = %d)\n", K_final))
   cat("=================================================================\n")
   cat(sprintf(" -> %-50s : %d\n", "Valid Variables (m)", m_valid))
+  cat(sprintf(" -> %-50s : %.2f\n", "Centered Trace (Tr_Mc)", Tr_Mc))
   cat("-----------------------------------------------------------------\n")
   cat(sprintf(" -> %-50s : %.2f\n", "Total Signal Volume (Unique + Redundant)", total_signal_volume))
   cat(sprintf(" -> %-40s : %.3f\n", "   (Unique Signal Volume)", unique_signal_volume))
@@ -633,7 +652,7 @@ calculate_entropic_scree <- function(data
   extended_eigenvals_bulk <- eig_vals[1:extended_bulk_k]
   p_extended_bulk <- extended_eigenvals_bulk / sum(extended_eigenvals_bulk)
   sig_var_bulk <- sum(extended_eigenvals_bulk)
-  total_sig_vol_bulk <- (R_eff * (sig_var_bulk / m_valid)) + redundant_signal_volume
+  total_sig_vol_bulk <- (R_eff * (sig_var_bulk / m_plus)) + redundant_signal_volume
   FSIG_extended_bulk <- p_extended_bulk * total_sig_vol_bulk
   
   # --- EXTENDED MODEL B: KAISER RULE BOUNDARY ---
@@ -641,12 +660,12 @@ calculate_entropic_scree <- function(data
   extended_eigenvals_kaiser <- eig_vals[1:extended_kaiser_k]
   p_extended_kaiser <- extended_eigenvals_kaiser / sum(extended_eigenvals_kaiser)
   sig_var_kaiser <- sum(extended_eigenvals_kaiser)
-  total_sig_vol_kaiser <- (R_eff * (sig_var_kaiser / m_valid)) + redundant_signal_volume
+  total_sig_vol_kaiser <- (R_eff * (sig_var_kaiser / m_plus)) + redundant_signal_volume
   FSIG_extended_kaiser <- p_extended_kaiser * total_sig_vol_kaiser
   
   return(list(
     eigenvalues = eig_vals,
-    similarity_matrix = NMI_mat,
+    similarity_matrix = NMI_mat_c,
     retained_features = valid_vars,
     bin_distributions = bin_sample_sizes,
     R_eff = R_eff,
@@ -730,7 +749,7 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
   n_terms <- ncol(design_mat)
   
   # --- THE DIALS ---
-  # To restore the factorial penalty later, swap the comments on the next two lines:
+  # To use a factorial penalty, swap the comments on the next two lines. This makes the underlying generation more linear:
   # term_sds <- sqrt(1 / factorial(interaction_orders))
   term_sds <- rep(1.0, n_terms) 
   # int_scaling is passed as a function argument
@@ -749,7 +768,7 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
     # Interactions and Polynomials
     if (n_int > 0)  coeffs[is_int, j]  <- rnorm(n_int, mean = 0, sd = term_sds[is_int] * int_scaling)
   }
-  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.25), nrow = n_terms, ncol = m_proxies)
+  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.05), nrow = n_terms, ncol = m_proxies)
   coeffs <- coeffs * mask
   
   # 3. Generate the Raw Structural Signal
@@ -789,7 +808,7 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
   true_proxies <- true_proxies[, mix_idx, drop = FALSE]
   is_continuous <- is_continuous[mix_idx]
   
-  # Calculate Algebraic K_rlzd before returning
+  # Calculate K_rlzd before returning
   active_terms <- sum(rowSums(abs(coeffs)) > 0)
   
   return(list(
@@ -894,8 +913,7 @@ term_names <- colnames(design_mat)
 interaction_orders <- stringr::str_count(term_names, ":") + 1
 
 # --- THE DIALS ---
-# term_sds <- sqrt(1 / factorial(interaction_orders))
-term_sds <- rep(1.0, length(term_names))
+term_sds <- rep(1.0, length(term_names)) # Use sqrt(1 / factorial(interaction_orders)) instead to shrink sds for interactions to move the systemt towards linearity.
 int_scaling <- 1.0 
 # -----------------
 
@@ -930,9 +948,9 @@ cat("\nDataset is ready. Starting pipeline...\n\n")
 # 4. RUN ENTROPIC SCREE
 # ==============================================================================
 results <- calculate_entropic_scree(observed_data
-                                  , purge_constants = FALSE
-                                  , check_collinearity = FALSE
-                                    )
+                                    , purge_constants = FALSE
+                                    , check_collinearity = FALSE
+)
 
 # ==============================================================================
 # 5. STANDARD PCA EXTRACTION (FOR COMPARISON)
@@ -940,7 +958,7 @@ results <- calculate_entropic_scree(observed_data
 cat("\nExtracting Standard PCA for comparison...\n")
 start_pca <- Sys.time()
 
-# We use prcomp with scaling to mirror a Pearson Correlation Matrix extraction
+# Use prcomp with scaling to mirror a Pearson Correlation Matrix extraction
 pca_res <- prcomp(observed_data, center = TRUE, scale. = TRUE)
 
 # Calculate standard PCA eigenvalues
@@ -1001,9 +1019,14 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   ent_y_90 <- ent_y_min + (ent_y_max - ent_y_min) * 0.90
   ent_y_75 <- ent_y_min + (ent_y_max - ent_y_min) * 0.75
   ent_y_60 <- ent_y_min + (ent_y_max - ent_y_min) * 0.60
+  ent_y_45 <- ent_y_min + (ent_y_max - ent_y_min) * 0.45
+  ent_y_30 <- ent_y_min + (ent_y_max - ent_y_min) * 0.30
   
   # Split the PCA data to visually distinguish the Null Space
   pca_data <- df_compare[df_compare$Method == "Standard PCA", ]
+  
+  # Isolate Entropic Scree and explicitly drop the final geometric zero (m)
+  ent_data <- df_compare[df_compare$Method == "Entropic Scree" & df_compare$Rank < M_PROXIES, ]
   
   # Plot PCA (Linear Scale Y, Log Scale X)
   p_pca <- ggplot2::ggplot(pca_data, ggplot2::aes(x = Rank, y = Eigenvalue)) +
@@ -1032,20 +1055,19 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     
     # Add PCA N-1 Ceiling (Dynamic)
     ggplot2::geom_vline(xintercept = (N_ROWS - 1), color = "black", linetype = "dotted", linewidth = 1) +
-    ggplot2::annotate("text", x = (N_ROWS - 1), y = pca_y_30, label = "PCA Rank Ceiling (N-1)", hjust = 1.05, size = ref_size) +
+    ggplot2::annotate("text", x = (N_ROWS - 1), y = pca_y_30, label = "PCA \nRank Ceiling (N - 1)", hjust = 1.05, size = ref_size) +
     
     # Linear Y-axis, Log X-axis
     ggplot2::scale_x_log10(breaks = log10_breaks) +
     ggplot2::coord_cartesian(ylim = c(pca_y_min, pca_y_max)) +
     ggplot2::labs(
       title = "Standard PCA",
-      x = "Eigenvalue Index (m) [Log Scale]", y = "Eigenvalue (from Correlation Matrix)"
+      x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue (Correlation Matrix)"
     ) +
     ggplot2::theme_minimal(base_size = 14)
   
   # Plot Entropic Scree (Linear Scale Y, Log Scale X)
-  p_ent <- ggplot2::ggplot(df_compare[df_compare$Method == "Entropic Scree", ], 
-                           ggplot2::aes(x = Rank, y = Eigenvalue)) +
+  p_ent <- ggplot2::ggplot(ent_data, ggplot2::aes(x = Rank, y = Eigenvalue)) +
     ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
     
     # Add r (Latent Generative Rank)
@@ -1060,6 +1082,10 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     ggplot2::geom_vline(xintercept = K_rlzd, color = "purple", linetype = "dotdash", linewidth = 1) +
     ggplot2::annotate("text", x = K_rlzd, y = ent_y_60, label = sprintf("K_rlzd (%d)", K_rlzd), hjust = -0.05, color = "purple", fontface = "italic", size = ref_size) +
     
+    # Add Entropic Scree Rank Ceiling (m-1)
+    ggplot2::geom_vline(xintercept = (M_PROXIES - 1), color = "black", linetype = "dotted", linewidth = 1) +
+    ggplot2::annotate("text", x = (M_PROXIES - 1), y = ent_y_30, label = "Entropic Scree \nRank Ceiling (m - 1)", hjust = 1.05, size = ref_size) +
+    
     # Linear Y-axis, Log X-axis
     ggplot2::scale_x_log10(breaks = log10_breaks) +
     
@@ -1067,7 +1093,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     ggplot2::coord_cartesian(ylim = c(ent_y_min, ent_y_max)) +
     ggplot2::labs(
       title = "Entropic Scree",
-      x = "Eigenvalue Index (m) [Log Scale]", y = "Eigenvalue (from NMI Matrix)"
+      x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue (double-centered NMI Matrix)"
     ) +
     ggplot2::theme_minimal(base_size = 14)
   
