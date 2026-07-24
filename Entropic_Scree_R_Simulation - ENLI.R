@@ -333,7 +333,7 @@ calculate_entropic_scree <- function(data
     window_size <- max(5, floor(n_total * 0.05)) 
     log_vals <- log(eig_vals)
     min_sigma <- 1e-4
-    sigma_multiplier <- 20
+    sigma_multiplier <- 15
     
     start_k <- n_total - 2
     
