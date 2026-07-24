@@ -333,7 +333,7 @@ calculate_entropic_scree <- function(data
     window_size <- max(5, floor(n_total * 0.05)) 
     log_vals <- log(eig_vals)
     min_sigma <- 1e-4
-    sigma_multiplier <- 15
+    sigma_multiplier <- 10
     
     start_k <- n_total - 2
     
@@ -372,6 +372,30 @@ calculate_entropic_scree <- function(data
           break
         }
       }
+    }
+  }
+  
+  # --- FALLBACK SIGMA EVALUATION ---
+  # If the triple-tap failed to trigger, we still calculate and save the sigma 
+  # and breakout magnitude for the fallback K_elbow so it prints in Wave 1.
+  if (elbow_method != "Triple-Tap Scanner" && K_elbow < n_total) {
+    window_size <- max(5, floor(n_total * 0.05))
+    min_sigma <- 1e-4
+    k_val <- K_elbow + 1
+    window_end <- min(n_total, k_val + window_size)
+    tail_idxs <- k_val:window_end
+    
+    if (length(tail_idxs) >= 3) {
+      tail_log_vals <- log(eig_vals)[tail_idxs]
+      fit <- lm(tail_log_vals ~ tail_idxs)
+      sigma <- summary(fit)$sigma
+      if(is.nan(sigma) || is.na(sigma) || sigma < min_sigma) sigma <- min_sigma
+      
+      pred_cand <- predict(fit, newdata = data.frame(tail_idxs = K_elbow))
+      actual_cand <- log(eig_vals)[K_elbow]
+      
+      tripped_sigma <- sigma
+      tripped_breakout <- (actual_cand - pred_cand) / sigma
     }
   }
   
@@ -768,7 +792,7 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
     # Interactions and Polynomials
     if (n_int > 0)  coeffs[is_int, j]  <- rnorm(n_int, mean = 0, sd = term_sds[is_int] * int_scaling)
   }
-  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.05), nrow = n_terms, ncol = m_proxies)
+  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.10), nrow = n_terms, ncol = m_proxies)
   coeffs <- coeffs * mask
   
   # 3. Generate the Raw Structural Signal
@@ -858,8 +882,8 @@ apply_measurement_error <- function(true_universe, snr_continuous = 2.0, binary_
 set.seed(19862026)
 
 K_TRUE <- 10
-N_ROWS <- 5000
-M_PROXIES <- 10000
+N_ROWS <- 10000
+M_PROXIES <- 20000
 CONTINUOUS_RATIO <- .80  # SET TO 1.0 FOR PURE CONTINUOUS, 0.0 FOR PURE BINARY, OR ANYWHERE IN BETWEEN
 
 # --- DIALS ---
