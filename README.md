@@ -42,13 +42,18 @@ To guarantee global geometric coherence and enforce a strict metric space, the f
 
 $$ \mathcal{M}_{i,j} = \frac{I(X_i; X_j)}{H(X_i) + H(X_j) - I(X_i; X_j)} $$
 
+### Double-Centering Bias Correction (cMDS)
+Because eigendecomposition cannot operate on raw distances, and empirical mutual information estimators suffer from a strictly positive finite-sample bias, the framework executes a **double-centering transformation** ($\mathcal{M}_c = H \mathcal{M} H$) prior to decomposition. This single operation serves a dual mathematical purpose:
+1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space. 
+2. It algebraically neutralizes the positive estimation bias, perfectly centering the Marchenko-Pastur noise bulk at zero and leaving the matrix to map pure **Topological Information Variance**.
+
 By utilizing a highly optimized, C++ backend to evaluate this matrix, the Entropic Scree:
 * Evaluates pure shared dependency via Copula Theory (Sklar's Theorem), completely immune to marginal shape mismatches.
 * Subsumes non-linear and discrete relationships back into their root generative source.
 * Easily computes an $m \times m$ pairwise matrix regardless of sample size, utterly breaking the $N-1$ algebraic ceiling enforced by standard PCA.
 
 ### Automated Elbow Detection
-To identify the boundary between true structural signal and finite-sample noise (the Marchenko-Pastur bulk), the script employs a log-space algorithmic assessment. It scans backward from the deep noise tail, estimating the true structural elbow only when it detects a massive, sustained phase transition, safely ignoring localized noise ripples.
+To identify the boundary between true structural signal and finite-sample noise (the Marchenko-Pastur bulk), the script employs a log-space algorithmic assessment. It scans backward from the deep noise tail using a sequential Triple-Tap scanner, estimating the true structural elbow only when it detects a massive, sustained phase transition (requiring a strict $20\sigma$ breakout) to safely ignore localized noise ripples. In sparse or highly modular environments where a dense continuous noise bulk is absent, the algorithm seamlessly defaults to a robust deterministic fallback: the **Maximum Secondary Spectral Gap**.
 
 **⚠️ Heuristic Warning ⚠️** The current form of the automatic elbow detector is provided strictly as a convenience heuristic. Because real-world noise distributions can vary unpredictably, the user should visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to ensure the correct generative rank is selected.
 
@@ -105,7 +110,7 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 
 ## <a id="-usage-r-script"></a>💻 Simulation (R Script)
 
-This repository includes a fully-annotated simulation in R that is **available to run now**. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, 97% pure noise, non-linear distortion), demonstrates the structural collapse of standard PCA, and utilizes the Entropic Scree to flawlessly extract the true generative rank ($r=10$).
+This repository includes a fully-annotated simulation in R that is **available to run now**. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, sparse and highly modular network topology, $\sim 99.5\%$ idiosyncratic noise, non-linear distortion), demonstrates the structural collapse of standard PCA, and utilizes the Entropic Scree to extract the true generative rank ($r=10$).
 
 **Notes:**
 * **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
@@ -117,7 +122,7 @@ Copy and paste the following code block into your R console or RStudio to downlo
 
 ```R
 # 1. Define the direct URL to the raw script on GitHub
-url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R"
+url <- "[https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R](https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R)"
 
 # 2. Define what you want to name the file on your computer
 file_name <- "Entropic_Scree_R_Simulation - ENLI.R"
@@ -141,7 +146,7 @@ This methodology is formally introduced in an upcoming preprint. Once published,
   title={The Entropic Scree: A Universal Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
   author={Lee-St. John, Terrence J.},
   journal={arXiv preprint (*Coming Soon*)},
-  year={*Coming Soon*}
+  year={2026}
 }
 ```
 
