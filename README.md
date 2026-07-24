@@ -138,7 +138,7 @@ file.edit(file_name)
 
 ## Citation & Contact
 
-This methodology is formally introduced in an upcoming preprint. Once published, the arXiv link and full BibTeX citation will be updated here.
+The full methodology is formally introduced in an upcoming preprint. Once published, the arXiv link and full BibTeX citation will be updated here.
 
 ```bibtex
 % Coming Soon
