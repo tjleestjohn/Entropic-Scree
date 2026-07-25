@@ -5,7 +5,7 @@
 # Organization: Enli (www.enli.com.au)
 # 
 # Description: Generates a high-dimensional, mixed-type, noisy synthetic 
-# dataset to demonstrate the structural collapse of standard PCA, and utilizes 
+# dataset to demonstrate the systematic degradation of standard PCA, and utilizes 
 # the Entropic Scree to extract the Latent Generative Rank (r).
 # ==============================================================================
 
@@ -135,6 +135,13 @@ calculate_entropic_scree <- function(data
   
   start_time <- Sys.time()
   dt <- data.table::as.data.table(data)
+  
+  # ----------------------------------------------------------------------------
+  # [0/9] INITIAL DIMENSION CHECK
+  # ----------------------------------------------------------------------------
+  if (ncol(dt) < 2) {
+    stop("Execution Halted: The input dataset must contain at least 2 columns to calculate mutual information.")
+  }
   
   # ----------------------------------------------------------------------------
   # [1/9] PURGE CONSTANTS & DUPLICATES
@@ -269,7 +276,7 @@ calculate_entropic_scree <- function(data
   }
   
   # ==========================================================================
-  # DIAGNOSTIC ONLY: MACRO GAP (NOISE CLIFF BOUNDARY)
+  # DIAGNOSTIC ONLY: MACRO GAP (NOISE Cliff BOUNDARY)
   # ==========================================================================
   n_total <- length(eig_vals)
   valid_k <- sum(eig_vals > mean_trace) 
@@ -308,17 +315,42 @@ calculate_entropic_scree <- function(data
   # LOGIC FOR MAXIMUM SECONDARY SPECTRAL GAP & TRIPLE TAP
   # ==========================================================================
   
-  # --- BASE FALLBACK: MAXIMUM SECONDARY SPECTRAL GAP ---
-  # Filter out the forced geometric zeros caused by double-centering
   valid_search_space <- eig_vals[eig_vals > 1e-8]
   n_valid_search <- length(valid_search_space)
   
   if (n_valid_search >= 3) {
     all_gaps <- abs(diff(valid_search_space))
-    # Exclude the first gap (between lambda_1 and lambda_2) 
-    secondary_gaps <- all_gaps[2:length(all_gaps)] 
-    fallback_k <- which.max(secondary_gaps) + 1
-    elbow_method <- "Maximum Secondary Spectral Gap"
+    
+    # --- EDGE CASE: Ultra-low rank (Macro gap too early for Triple-Tap runway) ---
+    if (!is.na(top_of_bulk_idx) && top_of_bulk_idx < 4) {
+      ordered_gaps <- order(all_gaps, decreasing = TRUE)
+      second_largest_gap_idx <- ordered_gaps[2]
+      
+      # FIX: >= ensures any gap at or after the start of the noise is bypassed
+      if (second_largest_gap_idx >= top_of_bulk_idx) {
+        fallback_k <- max(1, top_of_bulk_idx - 1)
+        elbow_method <- "Macro Gap Boundary - 1 (Fallback)"
+      } else {
+        fallback_k <- second_largest_gap_idx
+        elbow_method <- "Second Largest Spectral Gap (Fallback)"
+      }
+    } else {
+      # --- STANDARD FALLBACK (Maximum Secondary Spectral Gap) ---
+      # Bound the search space by the top of the bulk if it exists
+      if (!is.na(top_of_bulk_idx) && top_of_bulk_idx > 2) {
+        search_limit <- top_of_bulk_idx - 1
+        secondary_gaps <- all_gaps[2:search_limit]
+      } else {
+        secondary_gaps <- all_gaps[2:length(all_gaps)] 
+      }
+      fallback_k <- which.max(secondary_gaps) + 1
+      
+      # Final safety clamp
+      if (!is.na(top_of_bulk_idx) && fallback_k >= top_of_bulk_idx) {
+        fallback_k <- max(1, top_of_bulk_idx - 1)
+      }
+      elbow_method <- "Maximum Secondary Spectral Gap"
+    }
   } else {
     fallback_k <- max(1, valid_k)
     elbow_method <- "Kaiser Criterion (> Mean Trace)"
@@ -327,29 +359,43 @@ calculate_entropic_scree <- function(data
   K_elbow <- fallback_k
   tripped_sigma <- NA_real_
   tripped_breakout <- NA_real_
+  raw_tripped_breakout <- NA_real_
   
   # --- PRIMARY: TRIPLE-TAP SCANNER (OVERRIDE) ---
-  if (valid_k >= 4 && n_total > 5) {
-    window_size <- max(5, floor(n_total * 0.05)) 
+  # ONLY runs if the macro gap boundary provides enough runway (top_of_bulk_idx >= 4)
+  if (valid_k >= 4 && n_total > 5 && !is.na(top_of_bulk_idx) && top_of_bulk_idx >= 4) {
+    # Localized tangent window: min 3, max 20 points
+    window_size <- min(20, max(3, floor(n_total * 0.05))) 
     log_vals <- log(eig_vals)
     min_sigma <- 1e-4
-    sigma_multiplier <- 10
+    sigma_multiplier <- 5
     
-    start_k <- n_total - 2
+    # 1. Calculate the log-scale size of the Macro Gap (halved to preserve local elbow geometry)
+    log_macro_gap <- (log_vals[top_of_bulk_idx - 1] - log_vals[top_of_bulk_idx]) / 2
+    
+    # 2. Suture the Manifold: Shift the noise bulk UP to eliminate the cliff
+    adj_log_vals <- log_vals
+    adj_log_vals[top_of_bulk_idx:n_total] <- adj_log_vals[top_of_bulk_idx:n_total] + log_macro_gap
+    
+    # Bound the search to start from the top of the identified noise bulk
+    start_k <- top_of_bulk_idx
     
     for (k in seq(start_k, 3, by = -1)) {
       window_end <- min(n_total, k + window_size)
       tail_idxs <- k:window_end
       if (length(tail_idxs) < 3) next 
       
-      tail_log_vals <- log_vals[tail_idxs]
+      # Fit the regression on the sutured data space
+      tail_log_vals <- adj_log_vals[tail_idxs]
       fit <- lm(tail_log_vals ~ tail_idxs)
       sigma <- summary(fit)$sigma
       if(is.nan(sigma) || is.na(sigma) || sigma < min_sigma) sigma <- min_sigma
       
       cand_idx <- k - 1
       pred_cand <- predict(fit, newdata = data.frame(tail_idxs = cand_idx))
-      actual_cand <- log_vals[cand_idx]
+      
+      # Evaluate candidate in sutured data space
+      actual_cand <- adj_log_vals[cand_idx]
       
       if (actual_cand > (pred_cand + (sigma_multiplier * sigma))) {
         confirmed <- TRUE
@@ -357,17 +403,22 @@ calculate_entropic_scree <- function(data
         # Verify it wasn't a fluke by checking the next two points up the curve
         if (cand_idx > 1) {
           pred_1 <- predict(fit, newdata = data.frame(tail_idxs = cand_idx - 1))
-          if (log_vals[cand_idx - 1] <= (pred_1 + (sigma_multiplier * sigma))) confirmed <- FALSE
+          if (adj_log_vals[cand_idx - 1] <= (pred_1 + (sigma_multiplier * sigma))) confirmed <- FALSE
         }
         if (confirmed && cand_idx > 2) {
           pred_2 <- predict(fit, newdata = data.frame(tail_idxs = cand_idx - 2))
-          if (log_vals[cand_idx - 2] <= (pred_2 + (sigma_multiplier * sigma))) confirmed <- FALSE
+          if (adj_log_vals[cand_idx - 2] <= (pred_2 + (sigma_multiplier * sigma))) confirmed <- FALSE
         }
         
         if (confirmed) {
           K_elbow <- cand_idx
           tripped_sigma <- sigma    
-          tripped_breakout <- (actual_cand - pred_cand) / sigma
+          tripped_breakout <- (actual_cand - pred_cand) / sigma 
+          
+          # Diagnostic: Calculate raw visual breakout using original unmodified data
+          raw_pred <- predict(lm(log_vals[tail_idxs] ~ tail_idxs), newdata = data.frame(tail_idxs = cand_idx))
+          raw_tripped_breakout <- (log_vals[cand_idx] - raw_pred) / sigma
+          
           elbow_method <- "Triple-Tap Scanner"
           break
         }
@@ -379,7 +430,7 @@ calculate_entropic_scree <- function(data
   # If the triple-tap failed to trigger, we still calculate and save the sigma 
   # and breakout magnitude for the fallback K_elbow so it prints in Wave 1.
   if (elbow_method != "Triple-Tap Scanner" && K_elbow < n_total) {
-    window_size <- max(5, floor(n_total * 0.05))
+    window_size <- min(20, max(3, floor(n_total * 0.05))) 
     min_sigma <- 1e-4
     k_val <- K_elbow + 1
     window_end <- min(n_total, k_val + window_size)
@@ -396,6 +447,7 @@ calculate_entropic_scree <- function(data
       
       tripped_sigma <- sigma
       tripped_breakout <- (actual_cand - pred_cand) / sigma
+      raw_tripped_breakout <- tripped_breakout # Same as effective, since no stitch is used
     }
   }
   
@@ -425,8 +477,13 @@ calculate_entropic_scree <- function(data
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
     
-    # MACRO VIEW
-    macro_end <- min(length(eig_vals), max(50, K_elbow * 3))
+    # MACRO VIEW (Dynamically extended to show top of noise bulk)
+    macro_base <- max(50, K_elbow * 10)
+    if (!is.na(top_of_bulk_idx)) {
+      macro_base <- max(macro_base, top_of_bulk_idx + 25) # 25 index visual cushion
+    }
+    macro_end <- min(length(eig_vals), macro_base)
+    
     plot_df_macro <- data.frame(Rank = 1:macro_end, Eigenvalue = eig_vals[1:macro_end])
     macro_y_max <- if(length(eig_vals) >= 2) eig_vals[2] * 1.1 else max(eig_vals)
     
@@ -481,7 +538,8 @@ calculate_entropic_scree <- function(data
     cat("-----------------------------------------------------------------\n")
     cat(" [Triple-Tap Scanner Details]\n")
     cat(sprintf(" -> %-43s : %.6f\n", "Scanner Regression Baseline Sigma", tripped_sigma))
-    cat(sprintf(" -> %-43s : %.2f-Sigma\n", "Actual Breakout Magnitude", tripped_breakout))
+    cat(sprintf(" -> %-43s : %.2f-Sigma\n", "Effective Breakout (Stitched)", tripped_breakout))
+    cat(sprintf(" -> %-43s : %.2f-Sigma\n", "Raw Visual Breakout (Unstitched)", raw_tripped_breakout))
   }
   if (!is.na(macro_gap_ratio)) {
     cat("-----------------------------------------------------------------\n")
@@ -548,8 +606,13 @@ calculate_entropic_scree <- function(data
               ggplot2::theme_minimal(base_size = 14) +
               ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
             
-            # 2. MACRO VIEW
-            macro_end_upd <- min(length(eig_vals), max(50, K_final * 3, K_elbow * 3))
+            # 2. MACRO VIEW (Dynamically extended)
+            macro_base_upd <- max(50, K_final * 10, K_elbow * 10)
+            if (!is.na(top_of_bulk_idx)) {
+              macro_base_upd <- max(macro_base_upd, top_of_bulk_idx + 25) # 25 index visual cushion
+            }
+            macro_end_upd <- min(length(eig_vals), macro_base_upd)
+            
             plot_df_macro_upd <- data.frame(
               Rank = 1:macro_end_upd,
               Eigenvalue = eig_vals[1:macro_end_upd]
@@ -641,7 +704,7 @@ calculate_entropic_scree <- function(data
   # ============================================================================
   # WAVE 3: FINAL TRIPARTITE STRUCTURAL COMPOSITION
   # ============================================================================
-  noise_variance <- sum(eig_vals[(K_final + 1):m_valid])
+  noise_variance <- if (K_final < m_valid) sum(eig_vals[(K_final + 1):m_valid]) else 0
   noise_weight <- noise_variance / m_plus
   idiosyncratic_noise_volume <- R_eff * noise_weight
   
@@ -697,6 +760,7 @@ calculate_entropic_scree <- function(data
     extraction_method = elbow_method,
     tripped_sigma = tripped_sigma,
     tripped_breakout = tripped_breakout,
+    raw_tripped_breakout = raw_tripped_breakout,
     K_final = K_final,
     top_of_bulk = top_bulk_safe,
     total_signal_volume = total_signal_volume,
@@ -710,7 +774,6 @@ calculate_entropic_scree <- function(data
     eigenvectors = eigen_res$vectors
   ))
 }
-
 
 ################################################################################
 ################################################################################
@@ -882,8 +945,8 @@ apply_measurement_error <- function(true_universe, snr_continuous = 2.0, binary_
 set.seed(19862026)
 
 K_TRUE <- 10
-N_ROWS <- 10000
-M_PROXIES <- 20000
+N_ROWS <- 5000
+M_PROXIES <- 10000
 CONTINUOUS_RATIO <- .80  # SET TO 1.0 FOR PURE CONTINUOUS, 0.0 FOR PURE BINARY, OR ANYWHERE IN BETWEEN
 
 # --- DIALS ---
@@ -895,7 +958,7 @@ MAX_POLYNOMIAL_ORDER <- 4    # Controls pure powers (e.g., X1^2, X1^3). Uncapped
 CONTINUOUS_SNR <- 2  # Lower is dirtier (e.g., 0.5 is garbage, 10 is clean)
 BINARY_ERROR_RATE <- 0.15   # 0.0 is perfect sensor, 0.50 is pure static coin-flip
 
-cat(sprintf("Generating Mixed G2G Universe: %s rows, %d Proxies, %d Latent Drivers...\n", format(N_ROWS, big.mark=","), M_PROXIES, K_TRUE))
+cat(sprintf("Generating Mixed Synthetic Universe: %s rows, %d Proxies, %d Latent Drivers...\n", format(N_ROWS, big.mark=","), M_PROXIES, K_TRUE))
 
 # 1. Generate S(1) Latent Space
 medium_corr_matrix <- generate_random_corr_matrix(K_TRUE)
