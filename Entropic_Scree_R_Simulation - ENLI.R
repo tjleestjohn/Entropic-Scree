@@ -245,7 +245,7 @@ calculate_entropic_scree <- function(data
   NMI_mat <- MI_mat / joint_H_mat
   diag(NMI_mat) <- 1.0
   
-  cat("[8/10] Applying Double-Centering (cMDS / RMT Bias Correction)...\n")
+  cat("[8/10] Applying Double-Centering...\n")
   m_valid <- length(valid_vars)
   
   # Vectorized Double-Centering
@@ -265,7 +265,7 @@ calculate_entropic_scree <- function(data
   # Constructive Spectral Mass (sum of positive clipped eigenvalues)
   m_plus <- sum(eig_vals)
   
-  cat("[10/10] Calculating R_eff and Backward Scan Spectral Elbow...\n")
+  cat("[10/10] Calculating R_eff and Estimating Elbow...\n")
   sig_vals <- eig_vals[eig_vals > 0]
   if (length(sig_vals) > 0) {
     p_vals <- sig_vals / sum(sig_vals)
@@ -312,30 +312,31 @@ calculate_entropic_scree <- function(data
   }
   
   # ==========================================================================
-  # LOGIC FOR MAXIMUM SECONDARY SPECTRAL GAP & TRIPLE TAP
+  # PRIMARY ENGINE: MAXIMUM SECONDARY EIGENVALUE RATIO (LOG-GAP)
   # ==========================================================================
   
   valid_search_space <- eig_vals[eig_vals > 1e-8]
   n_valid_search <- length(valid_search_space)
   
   if (n_valid_search >= 3) {
-    all_gaps <- abs(diff(valid_search_space))
+    # Transform to Log-Space to evaluate the relative Ratio (percentage drop)
+    all_gaps <- abs(diff(log(valid_search_space)))
     
-    # --- EDGE CASE: Ultra-low rank (Macro gap too early for Triple-Tap runway) ---
+    # --- EDGE CASE: Ultra-low rank (Macro gap boundary severely truncates search space) ---
     if (!is.na(top_of_bulk_idx) && top_of_bulk_idx < 4) {
       ordered_gaps <- order(all_gaps, decreasing = TRUE)
       second_largest_gap_idx <- ordered_gaps[2]
       
-      # FIX: >= ensures any gap at or after the start of the noise is bypassed
+      # >= ensures any gap at or after the start of the noise is bypassed
       if (second_largest_gap_idx >= top_of_bulk_idx) {
-        fallback_k <- max(1, top_of_bulk_idx - 1)
-        elbow_method <- "Macro Gap Boundary - 1 (Fallback)"
+        K_elbow <- max(1, top_of_bulk_idx - 1)
+        elbow_method <- "Macro Gap Boundary - 1"
       } else {
-        fallback_k <- second_largest_gap_idx
-        elbow_method <- "Second Largest Spectral Gap (Fallback)"
+        K_elbow <- second_largest_gap_idx
+        elbow_method <- "Second Largest Eigenvalue Ratio"
       }
     } else {
-      # --- STANDARD FALLBACK (Maximum Secondary Spectral Gap) ---
+      # --- STANDARD ENGINE (Maximum Secondary Eigenvalue Ratio) ---
       # Bound the search space by the top of the bulk if it exists
       if (!is.na(top_of_bulk_idx) && top_of_bulk_idx > 2) {
         search_limit <- top_of_bulk_idx - 1
@@ -343,112 +344,17 @@ calculate_entropic_scree <- function(data
       } else {
         secondary_gaps <- all_gaps[2:length(all_gaps)] 
       }
-      fallback_k <- which.max(secondary_gaps) + 1
+      K_elbow <- which.max(secondary_gaps) + 1
       
       # Final safety clamp
-      if (!is.na(top_of_bulk_idx) && fallback_k >= top_of_bulk_idx) {
-        fallback_k <- max(1, top_of_bulk_idx - 1)
+      if (!is.na(top_of_bulk_idx) && K_elbow >= top_of_bulk_idx) {
+        K_elbow <- max(1, top_of_bulk_idx - 1)
       }
-      elbow_method <- "Maximum Secondary Spectral Gap"
+      elbow_method <- "Maximum Secondary Eigenvalue Ratio"
     }
   } else {
-    fallback_k <- max(1, valid_k)
+    K_elbow <- max(1, valid_k)
     elbow_method <- "Kaiser Criterion (> Mean Trace)"
-  }
-  
-  K_elbow <- fallback_k
-  tripped_sigma <- NA_real_
-  tripped_breakout <- NA_real_
-  raw_tripped_breakout <- NA_real_
-  
-  # --- PRIMARY: TRIPLE-TAP SCANNER (OVERRIDE) ---
-  # ONLY runs if the macro gap boundary provides enough runway (top_of_bulk_idx >= 4)
-  if (valid_k >= 4 && n_total > 5 && !is.na(top_of_bulk_idx) && top_of_bulk_idx >= 4) {
-    # Localized tangent window: min 3, max 20 points
-    window_size <- min(20, max(3, floor(n_total * 0.05))) 
-    log_vals <- log(eig_vals)
-    min_sigma <- 1e-4
-    sigma_multiplier <- 5
-    
-    # 1. Calculate the log-scale size of the Macro Gap (halved to preserve local elbow geometry)
-    log_macro_gap <- (log_vals[top_of_bulk_idx - 1] - log_vals[top_of_bulk_idx]) / 2
-    
-    # 2. Suture the Manifold: Shift the noise bulk UP to eliminate the cliff
-    adj_log_vals <- log_vals
-    adj_log_vals[top_of_bulk_idx:n_total] <- adj_log_vals[top_of_bulk_idx:n_total] + log_macro_gap
-    
-    # Bound the search to start from the top of the identified noise bulk
-    start_k <- top_of_bulk_idx
-    
-    for (k in seq(start_k, 3, by = -1)) {
-      window_end <- min(n_total, k + window_size)
-      tail_idxs <- k:window_end
-      if (length(tail_idxs) < 3) next 
-      
-      # Fit the regression on the sutured data space
-      tail_log_vals <- adj_log_vals[tail_idxs]
-      fit <- lm(tail_log_vals ~ tail_idxs)
-      sigma <- summary(fit)$sigma
-      if(is.nan(sigma) || is.na(sigma) || sigma < min_sigma) sigma <- min_sigma
-      
-      cand_idx <- k - 1
-      pred_cand <- predict(fit, newdata = data.frame(tail_idxs = cand_idx))
-      
-      # Evaluate candidate in sutured data space
-      actual_cand <- adj_log_vals[cand_idx]
-      
-      if (actual_cand > (pred_cand + (sigma_multiplier * sigma))) {
-        confirmed <- TRUE
-        
-        # Verify it wasn't a fluke by checking the next two points up the curve
-        if (cand_idx > 1) {
-          pred_1 <- predict(fit, newdata = data.frame(tail_idxs = cand_idx - 1))
-          if (adj_log_vals[cand_idx - 1] <= (pred_1 + (sigma_multiplier * sigma))) confirmed <- FALSE
-        }
-        if (confirmed && cand_idx > 2) {
-          pred_2 <- predict(fit, newdata = data.frame(tail_idxs = cand_idx - 2))
-          if (adj_log_vals[cand_idx - 2] <= (pred_2 + (sigma_multiplier * sigma))) confirmed <- FALSE
-        }
-        
-        if (confirmed) {
-          K_elbow <- cand_idx
-          tripped_sigma <- sigma    
-          tripped_breakout <- (actual_cand - pred_cand) / sigma 
-          
-          # Diagnostic: Calculate raw visual breakout using original unmodified data
-          raw_pred <- predict(lm(log_vals[tail_idxs] ~ tail_idxs), newdata = data.frame(tail_idxs = cand_idx))
-          raw_tripped_breakout <- (log_vals[cand_idx] - raw_pred) / sigma
-          
-          elbow_method <- "Triple-Tap Scanner"
-          break
-        }
-      }
-    }
-  }
-  
-  # --- FALLBACK SIGMA EVALUATION ---
-  # If the triple-tap failed to trigger, we still calculate and save the sigma 
-  # and breakout magnitude for the fallback K_elbow so it prints in Wave 1.
-  if (elbow_method != "Triple-Tap Scanner" && K_elbow < n_total) {
-    window_size <- min(20, max(3, floor(n_total * 0.05))) 
-    min_sigma <- 1e-4
-    k_val <- K_elbow + 1
-    window_end <- min(n_total, k_val + window_size)
-    tail_idxs <- k_val:window_end
-    
-    if (length(tail_idxs) >= 3) {
-      tail_log_vals <- log(eig_vals)[tail_idxs]
-      fit <- lm(tail_log_vals ~ tail_idxs)
-      sigma <- summary(fit)$sigma
-      if(is.nan(sigma) || is.na(sigma) || sigma < min_sigma) sigma <- min_sigma
-      
-      pred_cand <- predict(fit, newdata = data.frame(tail_idxs = K_elbow))
-      actual_cand <- log(eig_vals)[K_elbow]
-      
-      tripped_sigma <- sigma
-      tripped_breakout <- (actual_cand - pred_cand) / sigma
-      raw_tripped_breakout <- tripped_breakout # Same as effective, since no stitch is used
-    }
   }
   
   # ============================================================================
@@ -534,13 +440,7 @@ calculate_entropic_scree <- function(data
   cat("=================================================================\n")
   cat(sprintf(" -> %-43s : %d\n", "Automated Extracted Elbow Rank (K_elbow)", K_elbow))
   cat(sprintf(" -> %-43s : %s\n", "Extraction Method Tripped", elbow_method))
-  if (!is.na(tripped_breakout)) {
-    cat("-----------------------------------------------------------------\n")
-    cat(" [Triple-Tap Scanner Details]\n")
-    cat(sprintf(" -> %-43s : %.6f\n", "Scanner Regression Baseline Sigma", tripped_sigma))
-    cat(sprintf(" -> %-43s : %.2f-Sigma\n", "Effective Breakout (Stitched)", tripped_breakout))
-    cat(sprintf(" -> %-43s : %.2f-Sigma\n", "Raw Visual Breakout (Unstitched)", raw_tripped_breakout))
-  }
+  
   if (!is.na(macro_gap_ratio)) {
     cat("-----------------------------------------------------------------\n")
     cat(" [Diagnostic: Macro Gap (Noise Cliff)]\n")
@@ -758,9 +658,6 @@ calculate_entropic_scree <- function(data
     R_eff = R_eff,
     K_auto_extracted = K_elbow,
     extraction_method = elbow_method,
-    tripped_sigma = tripped_sigma,
-    tripped_breakout = tripped_breakout,
-    raw_tripped_breakout = raw_tripped_breakout,
     K_final = K_final,
     top_of_bulk = top_bulk_safe,
     total_signal_volume = total_signal_volume,
@@ -855,7 +752,7 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
     # Interactions and Polynomials
     if (n_int > 0)  coeffs[is_int, j]  <- rnorm(n_int, mean = 0, sd = term_sds[is_int] * int_scaling)
   }
-  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.10), nrow = n_terms, ncol = m_proxies)
+  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.05), nrow = n_terms, ncol = m_proxies)
   coeffs <- coeffs * mask
   
   # 3. Generate the Raw Structural Signal
