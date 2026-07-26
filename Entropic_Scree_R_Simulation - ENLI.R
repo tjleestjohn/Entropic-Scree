@@ -285,6 +285,8 @@ calculate_entropic_scree <- function(data
   macro_actual_gap <- NA_real_
   macro_gap_ratio <- NA_real_
   top_of_bulk_idx <- NA_integer_
+  elbow_ratio <- NA_real_
+  elbow_pct_drop <- NA_real_
   
   valid_search_space <- eig_vals[eig_vals > 1e-8]
   
@@ -355,6 +357,15 @@ calculate_entropic_scree <- function(data
   } else {
     K_elbow <- max(1, valid_k)
     elbow_method <- "Kaiser Criterion (> Mean Trace)"
+  }
+  
+  if (K_elbow < length(eig_vals)) {
+    val_current <- eig_vals[K_elbow]
+    val_next <- eig_vals[K_elbow + 1]
+    if (val_next > 1e-12) {
+      elbow_ratio <- val_current / val_next
+      elbow_pct_drop <- (1 - (val_next / val_current)) * 100
+    }
   }
   
   # ============================================================================
@@ -440,7 +451,9 @@ calculate_entropic_scree <- function(data
   cat("=================================================================\n")
   cat(sprintf(" -> %-43s : %d\n", "Automated Extracted Elbow Rank (K_elbow)", K_elbow))
   cat(sprintf(" -> %-43s : %s\n", "Extraction Method Tripped", elbow_method))
-  
+  if (!is.na(elbow_ratio)) {
+    cat(sprintf(" -> %-43s : %.2fx (%.1f%% Drop)\n", "Elbow Magnitude (Topological Variance Drop)", elbow_ratio, elbow_pct_drop))
+  }
   if (!is.na(macro_gap_ratio)) {
     cat("-----------------------------------------------------------------\n")
     cat(" [Diagnostic: Macro Gap (Noise Cliff)]\n")
@@ -693,7 +706,7 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
   k <- ncol(s1_continuous)
   n <- nrow(s1_continuous)
   
-  # NEW: Allow dynamic control over the continuous vs binary split
+  # Allow dynamic control over the continuous vs binary split
   m_cont <- floor(m_proxies * continuous_ratio)
   m_bin <- m_proxies - m_cont
   
