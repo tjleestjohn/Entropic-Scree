@@ -260,7 +260,14 @@ calculate_entropic_scree <- function(data
   
   cat("[9/10] Extracting Entropic Latent Factors (Eigen Decomposition)...\n")
   eigen_res <- eigen(NMI_mat_c, symmetric = TRUE)
-  eig_vals <- pmax(eigen_res$values, 1e-9)
+  raw_eig_vals <- eigen_res$values
+  
+  # Calculate SCDR before clipping
+  m_plus <- sum(raw_eig_vals[raw_eig_vals > 0])
+  m_minus <- sum(abs(raw_eig_vals[raw_eig_vals < 0]))
+  SCDR <- (m_minus / m_plus) * 100
+  
+  eig_vals <- pmax(raw_eig_vals, 1e-9)
   
   # Constructive Spectral Mass (sum of positive clipped eigenvalues)
   m_plus <- sum(eig_vals)
@@ -434,6 +441,7 @@ calculate_entropic_scree <- function(data
   cat("=================================================================\n")
   cat(sprintf(" -> %-50s : %d\n", "Valid Variables (m)", m_valid))
   cat(sprintf(" -> %-50s : %.2f\n", "Centered Trace (Tr_Mc)", Tr_Mc))
+  cat(sprintf(" -> %-50s : %.2f%%\n", "Synergistic Curvature Deficit Ratio (SCDR)", SCDR))
   cat("-----------------------------------------------------------------\n")
   cat(sprintf(" -> %-50s : %.2f\n", "Total Unique Probabilistic Volume (R_eff)", R_eff))
   cat(sprintf(" -> %-50s : %.1f%%\n", "%", pct_prob_volume))
