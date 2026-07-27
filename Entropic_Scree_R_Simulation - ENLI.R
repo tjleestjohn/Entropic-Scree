@@ -947,52 +947,88 @@ cat("\nDataset is ready. Starting pipeline...\n\n")
 results <- calculate_entropic_scree(observed_data
                                     , purge_constants = FALSE
                                     , check_collinearity = FALSE
-)
+                                    , interactive_mode = FALSE)
 
 # ==============================================================================
-# 5. STANDARD PCA EXTRACTION (FOR COMPARISON)
+# 5. STANDARD, SPEARMAN, & KERNEL PCA EXTRACTION (FOR COMPARISON)
 # ==============================================================================
+m_total <- ncol(observed_data)
+n_rows <- nrow(observed_data)
+
+# --- 5A. STANDARD PCA ---
 cat("\nExtracting Standard PCA for comparison...\n")
 start_pca <- Sys.time()
-
 # Use prcomp with scaling to mirror a Pearson Correlation Matrix extraction
 pca_res <- prcomp(observed_data, center = TRUE, scale. = TRUE)
-
-# Calculate standard PCA eigenvalues
 pca_eigenvalues <- pca_res$sdev^2
-
 pca_time <- round(as.numeric(difftime(Sys.time(), start_pca, units = "secs")), 2)
 cat(sprintf("Standard PCA completed in %.2f seconds.\n", pca_time))
-
-# Create a comparison data frame
-# PCA will only return N eigenvalues, padding the rest with exactly 0
-m_total <- ncol(observed_data)
-pca_padded <- c(pca_eigenvalues, rep(0, m_total - length(pca_eigenvalues)))
-
-df_compare <- data.frame(
-  Rank = rep(1:m_total, 2),
-  Eigenvalue = c(pca_padded, results$eigenvalues),
-  Method = factor(rep(c("Standard PCA", "Entropic Scree"), each = m_total),
-                  levels = c("Standard PCA", "Entropic Scree"))
-)
-
-# Standard Kaiser Rule for comparison
 pca_kaiser <- sum(pca_eigenvalues > 1.0)
 
+# --- 5B. SPEARMAN RANK PCA ---
+cat("\nExtracting Spearman Rank PCA for comparison...\n")
+start_spearman <- Sys.time()
+# Apply dense rank to mimic Spearman correlation structure
+ranked_data <- apply(observed_data, 2, data.table::frank)
+spearman_res <- prcomp(ranked_data, center = TRUE, scale. = TRUE)
+spearman_eigenvalues <- spearman_res$sdev^2
+spearman_time <- round(as.numeric(difftime(Sys.time(), start_spearman, units = "secs")), 2)
+cat(sprintf("Spearman Rank PCA completed in %.2f seconds.\n", spearman_time))
+rm(ranked_data); gc(verbose = FALSE) # Clear memory
+spearman_kaiser <- sum(spearman_eigenvalues > 1.0)
+
+# --- 5C. KERNEL PCA (RBF / GAUSSIAN) ---
+cat("\nExtracting Kernel PCA (RBF) for comparison...\n")
+start_kpca <- Sys.time()
+# Fast squared distance and Kernel matrix computation to protect RAM
+X_scaled <- scale(as.matrix(observed_data))
+X_norm <- rowSums(X_scaled^2)
+D2 <- outer(X_norm, X_norm, "+") - 2 * tcrossprod(X_scaled)
+gamma <- 1 / m_total
+K_mat <- exp(-gamma * D2)
+rm(X_scaled, D2); gc(verbose = FALSE)
+
+# Double center the Kernel matrix
+one_n <- matrix(1/n_rows, n_rows, n_rows)
+K_c <- K_mat - one_n %*% K_mat - K_mat %*% one_n + one_n %*% K_mat %*% one_n
+rm(K_mat, one_n); gc(verbose = FALSE)
+
+# Extract Eigenvalues
+kpca_eigenvalues <- eigen(K_c, symmetric = TRUE, only.values = TRUE)$values
+kpca_eigenvalues <- pmax(kpca_eigenvalues, 0) # Clip numeric artifacts
+kpca_time <- round(as.numeric(difftime(Sys.time(), start_kpca, units = "secs")), 2)
+cat(sprintf("Kernel PCA (RBF) completed in %.2f seconds.\n", kpca_time))
+rm(K_c); gc(verbose = FALSE)
+
+# --- 5D. BUILD COMPARISON DATAFRAME ---
+# Pad N-length vectors with zeros to match m_total
+pca_padded <- c(pca_eigenvalues, rep(0, m_total - length(pca_eigenvalues)))
+spearman_padded <- c(spearman_eigenvalues, rep(0, m_total - length(spearman_eigenvalues)))
+kpca_padded <- c(kpca_eigenvalues, rep(0, m_total - length(kpca_eigenvalues)))
+
+df_compare <- data.frame(
+  Rank = rep(1:m_total, 4),
+  Eigenvalue = c(pca_padded, spearman_padded, kpca_padded, results$eigenvalues),
+  Method = factor(rep(c("Standard PCA", "Spearman PCA", "Kernel PCA", "Entropic Scree"), each = m_total),
+                  levels = c("Standard PCA", "Spearman PCA", "Kernel PCA", "Entropic Scree"))
+)
+
 # ==============================================================================
-# 6. SIDE-BY-SIDE VISUAL PROOF
+# 6. SIDE-BY-SIDE VISUAL PROOF (4-PANEL GRID)
 # ==============================================================================
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   
   # Calculate caps for visual clarity
   pca_y_max <- if(length(pca_eigenvalues) >= 2) pca_eigenvalues[2] * 1.1 else max(pca_eigenvalues)
+  spear_y_max <- if(length(spearman_eigenvalues) >= 2) spearman_eigenvalues[2] * 1.1 else max(spearman_eigenvalues)
+  kpca_y_max <- if(length(kpca_eigenvalues) >= 2) kpca_eigenvalues[2] * 1.1 else max(kpca_eigenvalues)
   ent_y_max <- if(length(results$eigenvalues) >= 2) results$eigenvalues[2] * 1.1 else max(results$eigenvalues)
   
-  # Strict lower bound for Entropic Scree (ignoring the 1e-9 artificial clamp)
   ent_y_min <- min(results$eigenvalues[results$eigenvalues > 1e-8])
-  pca_y_min <- 0 # Standard PCA floor
+  pca_y_min <- 0 
+  kpca_y_min <- 0
   
-  # Dynamic log breaks generator function (1, 10, 100, 1000...)
+  # Dynamic log breaks generator
   log10_breaks <- function(x) {
     10^seq(floor(log10(min(x))), ceiling(log10(max(x))))
   }
@@ -1000,104 +1036,123 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   # Extract K_rlzd and R_alg
   K_rlzd <- true_universe$active_terms
   R_alg <- true_continuous_ceiling 
+  ref_size <- 3.0 # Slightly scaled down for 4-panel density
   
-  # Global annotation font size
-  ref_size <- 3.5
+  # Helper function to generate staggered Y heights for annotations
+  get_heights <- function(y_min, y_max) {
+    list(
+      h90 = y_min + (y_max - y_min) * 0.90,
+      h75 = y_min + (y_max - y_min) * 0.75,
+      h60 = y_min + (y_max - y_min) * 0.60,
+      h52 = y_min + (y_max - y_min) * 0.525, # Midpoint between K_rlzd (h75) and Rank Ceiling (h30)
+      h45 = y_min + (y_max - y_min) * 0.45,
+      h30 = y_min + (y_max - y_min) * 0.30
+    )
+  }
   
-  # --- Linear-Space Positions for Annotations ---
-  # Staggering every label across unique vertical heights guarantees 
-  # zero visual overlap, regardless of how close the lines are on the x-axis.
-  pca_y_90 <- pca_y_min + (pca_y_max - pca_y_min) * 0.90
-  pca_y_75 <- pca_y_min + (pca_y_max - pca_y_min) * 0.75
-  pca_y_60 <- pca_y_min + (pca_y_max - pca_y_min) * 0.60
-  pca_y_45 <- pca_y_min + (pca_y_max - pca_y_min) * 0.45
-  pca_y_30 <- pca_y_min + (pca_y_max - pca_y_min) * 0.30
+  hpca <- get_heights(pca_y_min, pca_y_max)
+  hspear <- get_heights(pca_y_min, spear_y_max)
+  hkpca <- get_heights(kpca_y_min, kpca_y_max)
+  hent <- get_heights(ent_y_min, ent_y_max)
   
-  ent_y_90 <- ent_y_min + (ent_y_max - ent_y_min) * 0.90
-  ent_y_75 <- ent_y_min + (ent_y_max - ent_y_min) * 0.75
-  ent_y_60 <- ent_y_min + (ent_y_max - ent_y_min) * 0.60
-  ent_y_45 <- ent_y_min + (ent_y_max - ent_y_min) * 0.45
-  ent_y_30 <- ent_y_min + (ent_y_max - ent_y_min) * 0.30
-  
-  # Split the PCA data to visually distinguish the Null Space
+  # Split the data
   pca_data <- df_compare[df_compare$Method == "Standard PCA", ]
-  
-  # Isolate Entropic Scree and explicitly drop the final geometric zero (m)
+  spear_data <- df_compare[df_compare$Method == "Spearman PCA", ]
+  kpca_data <- df_compare[df_compare$Method == "Kernel PCA", ]
   ent_data <- df_compare[df_compare$Method == "Entropic Scree" & df_compare$Rank < M_PROXIES, ]
   
-  # Plot PCA (Linear Scale Y, Log Scale X)
+  # ---------------------------------------------------------
+  # PANEL 1: STANDARD PCA
+  # ---------------------------------------------------------
   p_pca <- ggplot2::ggplot(pca_data, ggplot2::aes(x = Rank, y = Eigenvalue)) +
-    
-    # 1. Calculated Variance (Solid Red)
-    ggplot2::geom_line(data = pca_data[pca_data$Rank < N_ROWS, ], color = "firebrick", linewidth = 1) +
-    
-    # 2. Algebraic Null Space (Dashed Gray - exactly 0 due to N-1 ceiling)
-    ggplot2::geom_line(data = pca_data[pca_data$Rank >= (N_ROWS - 1), ], color = "gray60", linetype = "dashed", linewidth = 1) +
-    
-    # Add r (Latent Generative Rank)
+    ggplot2::geom_line(data = pca_data[pca_data$Rank < n_rows, ], color = "firebrick", linewidth = 1) +
+    ggplot2::geom_line(data = pca_data[pca_data$Rank >= (n_rows - 1), ], color = "gray60", linetype = "dashed", linewidth = 1) +
     ggplot2::geom_vline(xintercept = K_TRUE, color = "forestgreen", linetype = "solid", linewidth = 1.2) +
-    ggplot2::annotate("text", x = K_TRUE, y = pca_y_90, label = sprintf("r (%d)", K_TRUE), hjust = -0.1, color = "forestgreen", fontface = "bold", size = ref_size) +
-    
-    # Add R_alg (Effective Latent Configurational Rank)
-    ggplot2::geom_vline(xintercept = R_alg, color = "magenta", linetype = "longdash", linewidth = 1) +
-    ggplot2::annotate("text", x = R_alg, y = pca_y_75, label = sprintf("R_alg (%.1f)", R_alg), hjust = 1.05, color = "magenta", fontface = "italic", size = ref_size) +
-    
-    # Add K_rlzd (Realized Latent Configurational Rank)
+    ggplot2::annotate("text", x = K_TRUE, y = hpca$h90, label = sprintf(" r \n (%d)", K_TRUE), hjust = -0.1, color = "forestgreen", fontface = "bold", size = ref_size) +
     ggplot2::geom_vline(xintercept = K_rlzd, color = "purple", linetype = "dotdash", linewidth = 1) +
-    ggplot2::annotate("text", x = K_rlzd, y = pca_y_60, label = sprintf("K_rlzd (%d)", K_rlzd), hjust = -0.05, color = "purple", fontface = "italic", size = ref_size) +
-    
-    # Add PCA Kaiser Rule (E > 1.0)
+    ggplot2::annotate("text", x = K_rlzd, y = hpca$h75, label = sprintf(" K_rlzd \n (%d)", K_rlzd), hjust = 1.05, color = "purple", fontface = "italic", size = ref_size) +
     ggplot2::geom_vline(xintercept = pca_kaiser, color = "darkorange", linetype = "dashed", linewidth = 1) +
-    ggplot2::annotate("text", x = pca_kaiser, y = pca_y_45, label = sprintf("Kaiser Cutoff (E>1): %d", pca_kaiser), hjust = 1.05, color = "darkorange", fontface = "italic", size = ref_size) +
-    
-    # Add PCA N-1 Ceiling (Dynamic)
-    ggplot2::geom_vline(xintercept = (N_ROWS - 1), color = "black", linetype = "dotted", linewidth = 1) +
-    ggplot2::annotate("text", x = (N_ROWS - 1), y = pca_y_30, label = "PCA \nRank Ceiling (N - 1)", hjust = 1.05, size = ref_size) +
-    
-    # Linear Y-axis, Log X-axis
+    ggplot2::annotate("text", x = pca_kaiser, y = hpca$h52, label = sprintf("Kaiser, E>1 \n(%d) ", pca_kaiser), hjust = 1.05, color = "darkorange", fontface = "italic", size = ref_size) +
+    ggplot2::geom_vline(xintercept = (n_rows - 1), color = "black", linetype = "dotted", linewidth = 1) +
+    ggplot2::annotate("text", x = (n_rows - 1), y = hpca$h30, label = "Rank \nCeiling (N-1)", hjust = 1.05, size = ref_size) +
     ggplot2::scale_x_log10(breaks = log10_breaks) +
     ggplot2::coord_cartesian(ylim = c(pca_y_min, pca_y_max)) +
-    ggplot2::labs(
-      title = "Standard PCA",
-      x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue (Correlation Matrix)"
-    ) +
-    ggplot2::theme_minimal(base_size = 14)
+    ggplot2::labs(title = "Standard PCA", x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue") +
+    ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(plot.title = ggplot2::element_text(face="bold"))
   
-  # Plot Entropic Scree (Linear Scale Y, Log Scale X)
+  # ---------------------------------------------------------
+  # PANEL 2: SPEARMAN RANK PCA
+  # ---------------------------------------------------------
+  p_spear <- ggplot2::ggplot(spear_data, ggplot2::aes(x = Rank, y = Eigenvalue)) +
+    ggplot2::geom_line(data = spear_data[spear_data$Rank < n_rows, ], color = "darkgoldenrod", linewidth = 1) +
+    ggplot2::geom_line(data = spear_data[spear_data$Rank >= (n_rows - 1), ], color = "gray60", linetype = "dashed", linewidth = 1) +
+    ggplot2::geom_vline(xintercept = K_TRUE, color = "forestgreen", linetype = "solid", linewidth = 1.2) +
+    ggplot2::annotate("text", x = K_TRUE, y = hspear$h90, label = sprintf(" r \n (%d)", K_TRUE), hjust = -0.1, color = "forestgreen", fontface = "bold", size = ref_size) +
+    ggplot2::geom_vline(xintercept = K_rlzd, color = "purple", linetype = "dotdash", linewidth = 1) +
+    ggplot2::annotate("text", x = K_rlzd, y = hspear$h75, label = sprintf(" K_rlzd \n (%d)", K_rlzd), hjust = 1.05, color = "purple", fontface = "italic", size = ref_size) +
+    ggplot2::geom_vline(xintercept = spearman_kaiser, color = "darkorange", linetype = "dashed", linewidth = 1) +
+    ggplot2::annotate("text", x = spearman_kaiser, y = hspear$h52, label = sprintf("Kaiser, E>1 \n(%d) ", spearman_kaiser), hjust = 1.05, color = "darkorange", fontface = "italic", size = ref_size) +
+    ggplot2::geom_vline(xintercept = (n_rows - 1), color = "black", linetype = "dotted", linewidth = 1) +
+    ggplot2::annotate("text", x = (n_rows - 1), y = hspear$h30, label = "Rank \nCeiling (N-1)", hjust = 1.05, size = ref_size) +
+    ggplot2::scale_x_log10(breaks = log10_breaks) +
+    ggplot2::coord_cartesian(ylim = c(pca_y_min, spear_y_max)) +
+    ggplot2::labs(title = "Spearman Rank PCA", x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue") +
+    ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(plot.title = ggplot2::element_text(face="bold"))
+  
+  # ---------------------------------------------------------
+  # PANEL 3: KERNEL PCA (RBF)
+  # ---------------------------------------------------------
+  # Calculate KPCA Kaiser (Eigenvalues > Mean Trace) for visual consistency
+  kpca_kaiser <- sum(kpca_eigenvalues > mean(kpca_eigenvalues))
+  
+  p_kpca <- ggplot2::ggplot(kpca_data, ggplot2::aes(x = Rank, y = Eigenvalue)) +
+    ggplot2::geom_line(data = kpca_data[kpca_data$Rank < n_rows, ], color = "mediumorchid4", linewidth = 1) +
+    ggplot2::geom_line(data = kpca_data[kpca_data$Rank >= (n_rows - 1), ], color = "gray60", linetype = "dashed", linewidth = 1) +
+    ggplot2::geom_vline(xintercept = K_TRUE, color = "forestgreen", linetype = "solid", linewidth = 1.2) +
+    ggplot2::annotate("text", x = K_TRUE, y = hkpca$h90, label = sprintf(" r \n (%d)", K_TRUE), hjust = -0.1, color = "forestgreen", fontface = "bold", size = ref_size) +
+    ggplot2::geom_vline(xintercept = K_rlzd, color = "purple", linetype = "dotdash", linewidth = 1) +
+    ggplot2::annotate("text", x = K_rlzd, y = hkpca$h75, label = sprintf(" K_rlzd \n (%d)", K_rlzd), hjust = 1.05, color = "purple", fontface = "italic", size = ref_size) +
+    ggplot2::geom_vline(xintercept = kpca_kaiser, color = "darkorange", linetype = "dashed", linewidth = 1) +
+    ggplot2::annotate("text", x = kpca_kaiser, y = hkpca$h52, label = sprintf("Kaiser, E>Mean \n(%d) ", kpca_kaiser), hjust = 1.05, color = "darkorange", fontface = "italic", size = ref_size) +
+    ggplot2::geom_vline(xintercept = (n_rows - 1), color = "black", linetype = "dotted", linewidth = 1) +
+    ggplot2::annotate("text", x = (n_rows - 1), y = hkpca$h30, label = "Rank \nCeiling (N-1)", hjust = 1.05, size = ref_size) +
+    ggplot2::scale_x_log10(breaks = log10_breaks) +
+    ggplot2::coord_cartesian(ylim = c(kpca_y_min, kpca_y_max)) +
+    ggplot2::labs(title = "Kernel PCA (RBF)", x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue") +
+    ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(plot.title = ggplot2::element_text(face="bold"))
+  
+  # ---------------------------------------------------------
+  # PANEL 4: ENTROPIC SCREE
+  # ---------------------------------------------------------
+  # Calculate Entropic Kaiser (Eigenvalues > Mean Trace)
+  ent_kaiser <- sum(results$eigenvalues > mean(results$eigenvalues))
+  
   p_ent <- ggplot2::ggplot(ent_data, ggplot2::aes(x = Rank, y = Eigenvalue)) +
     ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
-    
-    # Add r (Latent Generative Rank)
     ggplot2::geom_vline(xintercept = K_TRUE, color = "forestgreen", linetype = "solid", linewidth = 1.2) +
-    ggplot2::annotate("text", x = K_TRUE, y = ent_y_90, label = sprintf("r (%d)", K_TRUE), hjust = -0.1, color = "forestgreen", fontface = "bold", size = ref_size) +
-    
-    # Add R_alg (Effective Latent Configurational Rank)
-    ggplot2::geom_vline(xintercept = R_alg, color = "magenta", linetype = "longdash", linewidth = 1) +
-    ggplot2::annotate("text", x = R_alg, y = ent_y_75, label = sprintf("R_alg (%.1f)", R_alg), hjust = 1.05, color = "magenta", fontface = "italic", size = ref_size) +
-    
-    # Add K_rlzd (Realized Latent Configurational Rank)
+    ggplot2::annotate("text", x = K_TRUE, y = hent$h90, label = sprintf(" r \n (%d)", K_TRUE), hjust = -0.1, color = "forestgreen", fontface = "bold", size = ref_size) +
     ggplot2::geom_vline(xintercept = K_rlzd, color = "purple", linetype = "dotdash", linewidth = 1) +
-    ggplot2::annotate("text", x = K_rlzd, y = ent_y_60, label = sprintf("K_rlzd (%d)", K_rlzd), hjust = -0.05, color = "purple", fontface = "italic", size = ref_size) +
-    
-    # Add Entropic Scree Rank Ceiling (m-1)
+    ggplot2::annotate("text", x = K_rlzd, y = hent$h75, label = sprintf(" K_rlzd \n (%d)", K_rlzd), hjust = 1.05, color = "purple", fontface = "italic", size = ref_size) +
+    ggplot2::geom_vline(xintercept = ent_kaiser, color = "darkorange", linetype = "dashed", linewidth = 1) +
+    ggplot2::annotate("text", x = ent_kaiser, y = hent$h52, label = sprintf("Kaiser, E>Mean \n(%d) ", ent_kaiser), hjust = 1.05, color = "darkorange", fontface = "italic", size = ref_size) +
     ggplot2::geom_vline(xintercept = (M_PROXIES - 1), color = "black", linetype = "dotted", linewidth = 1) +
-    ggplot2::annotate("text", x = (M_PROXIES - 1), y = ent_y_30, label = "Entropic Scree \nRank Ceiling (m - 1)", hjust = 1.05, size = ref_size) +
-    
-    # Linear Y-axis, Log X-axis
+    ggplot2::annotate("text", x = (M_PROXIES - 1), y = hent$h30, label = "Rank \nCeiling (m-1)", hjust = 1.05, size = ref_size) +
     ggplot2::scale_x_log10(breaks = log10_breaks) +
-    
-    # Bounded to crop out the 1e-9 clamp tail for a clean linear floor
     ggplot2::coord_cartesian(ylim = c(ent_y_min, ent_y_max)) +
-    ggplot2::labs(
-      title = "Entropic Scree",
-      x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue (double-centered NMI Matrix)"
-    ) +
-    ggplot2::theme_minimal(base_size = 14)
+    ggplot2::labs(title = "Entropic Scree", x = "Eigenvalue Index [Log Scale]", y = "Eigenvalue") +
+    ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(plot.title = ggplot2::element_text(face="bold"))
   
+  # ---------------------------------------------------------
+  # RENDER 4-PANEL GRID
+  # ---------------------------------------------------------
   if (requireNamespace("patchwork", quietly = TRUE)) {
-    print(p_pca + p_ent)
+    combined <- (p_pca + p_spear) / (p_kpca + p_ent)
+    print(combined)
   } else {
+    cat("\n[!] To view the side-by-side 4-panel plot, please install the 'patchwork' package.\n")
     print(p_pca)
+    print(p_spear)
+    print(p_kpca)
     print(p_ent)
   }
 }
