@@ -117,7 +117,7 @@ This repository includes a fully-annotated simulation in R that is **available t
 **Notes:**
 * **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
 * **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading natively in RAM.
-* **Interactive Mode (User Input Required):** The script pauses at the diagnostic elbow to provide a visual plot preview, requiring the user to confirm or manually override the rank in the R console. **While you cannot "select all and run" the entire file at once, you can safely select and run everything from the top down to (and including) the `calculate_entropic_scree()` function call in Section 4. RUN ENTROPIC SCREE.** Once you confirm the rank in the console, you can run the rest of the script.
+* **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the automated log-gap heuristic to extract the rank and complete the baseline comparisons without requiring manual console input.
 
 ### Quick Start
 Copy and paste the following code block into your R console or RStudio to download and open the script directly:
