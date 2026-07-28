@@ -136,6 +136,11 @@ download.file(url, destfile = file_name)
 file.edit(file_name)
 ```
 
+### Advanced Validation: Discretization Ablation (Appendix B)
+The repository also includes `Appendix_B_Binning_Ablation.R`. This script reproduces the stress-test from the paper's appendix, proving that while extreme binning heuristics (like Freedman-Diaconis) artificially compress probabilistic volume ($R_{eff}$), the extraction of the underlying generative rank ($K_{elbow} = 10$) remains mathematically invariant. It also automatically generates the 1x3 panel graph showing the structural noise artifact dissolving.
+
+**Instructions:** Run this script in the exact same R workspace **immediately following** the successful execution of the main simulation script. It relies on the synthetic `observed_data` matrix already generated in your computer's memory by the primary simulation, ensuring you don't have to wait for the hostile environment to be generated twice.
+
 ---
 
 ## Citation & Contact
