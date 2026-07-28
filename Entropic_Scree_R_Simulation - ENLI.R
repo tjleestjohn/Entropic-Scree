@@ -9,6 +9,8 @@
 # the Entropic Scree to extract the Latent Generative Rank (r).
 # ==============================================================================
 
+options(max.print = 999999)
+
 rm(list = ls())
 gc(verbose = FALSE)
 
@@ -930,7 +932,7 @@ expanded_eigen <- pmax(eigen(expanded_cov, symmetric = TRUE)$values, 0)
 p_expanded <- expanded_eigen[expanded_eigen > 1e-9] / sum(expanded_eigen[expanded_eigen > 1e-9])
 true_continuous_ceiling <- exp(-sum(p_expanded * log(p_expanded)))
 
-cat(sprintf("\n[***] R_alg (Effective Latent Configurational Rank): %.2f\n\n", true_continuous_ceiling))
+cat(sprintf("\n[***] R_conf (Effective Latent Configurational Rank): %.2f\n\n", true_continuous_ceiling))
 
 # 3. Generate the Data (Uncoupled Truth and Error)
 true_universe <- generate_true_mixed_proxies(
@@ -1041,9 +1043,9 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
     10^seq(floor(log10(min(x))), ceiling(log10(max(x))))
   }
   
-  # Extract K_rlzd and R_alg
+  # Extract K_rlzd and R_conf
   K_rlzd <- true_universe$active_terms
-  R_alg <- true_continuous_ceiling 
+  R_conf <- true_continuous_ceiling 
   ref_size <- 3.0 # Slightly scaled down for 4-panel density
   
   # Helper function to generate staggered Y heights for annotations
