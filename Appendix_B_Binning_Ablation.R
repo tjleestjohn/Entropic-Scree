@@ -41,6 +41,9 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
   # Zoom window: Ranks 1 to 75 to isolate the boundary and the artifact
   df <- data.frame(Rank = 1:75, Eigenvalue = eig_vec[1:75])
   
+  # Calculate 1.025x of the second eigenvalue to use as the upper limit
+  y_upper_limit <- eig_vec[2] * 1.025
+  
   p <- ggplot(df, aes(x = Rank, y = Eigenvalue)) +
     geom_line(color = "dodgerblue", linewidth = 1) +
     geom_point(color = "dodgerblue", size = 1.5) +
@@ -49,6 +52,8 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
     # Visual guide for the noise artifact at 55
     geom_vline(xintercept = 55, color = "gray60", linetype = "dotted", linewidth = 1) +
     scale_y_continuous(trans = 'log10') +
+    # Use coord_cartesian to visually zoom without discarding the first data point
+    coord_cartesian(ylim = c(NA, y_upper_limit)) +
     labs(
       title = title_text, 
       x = "Eigenvalue Index", 
@@ -63,11 +68,10 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
   
   return(p)
 }
-
-# Generate the 3 panels (bquote allows for clean mathematical exponents in the titles)
-p1 <- create_panel(eig_17, bquote("Conservative" ~ (N^{1/3}) ~ "[17 Bins]"), hide_y_label = FALSE)
-p2 <- create_panel(eig_71, bquote("Dense" ~ (N^{1/2}) ~ "[71 Bins]"), hide_y_label = TRUE)
-p3 <- create_panel(eig_152, "Freedman-Diaconis [152 Bins]", hide_y_label = TRUE)
+# Generate the 3 panels (atop() stacks the text onto two lines)
+p1 <- create_panel(eig_17, bquote(atop(bold("Conservative Default" ~ (N^{1/3})), bold("[17 Bins]"))), hide_y_label = FALSE)
+p2 <- create_panel(eig_71, bquote(atop(bold("Dense" ~ (N^{1/2})), bold("[71 Bins]"))), hide_y_label = TRUE)
+p3 <- create_panel(eig_152, bquote(atop(bold("Freedman-Diaconis" ~ phantom(N^{1/2})), bold("[152 Bins]"))), hide_y_label = TRUE)
 
 # Combine using patchwork
 final_plot <- p1 + p2 + p3 + 
