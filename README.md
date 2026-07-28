@@ -44,7 +44,7 @@ $$ \mathcal{M}_{i,j} = \frac{I(X_i; X_j)}{H(X_i) + H(X_j) - I(X_i; X_j)} $$
 
 ### Double-Centering Bias Correction (cMDS)
 Because eigendecomposition cannot operate on raw similarities, and empirical mutual information estimators suffer from a strictly positive finite-sample bias, the framework executes a **double-centering transformation** ($\mathcal{M}_c = H \mathcal{M} H$) prior to decomposition. This single operation serves a dual mathematical purpose:
-1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space, natively embedding the square root of the Normalized Variation of Information ($\sqrt{NVI}$) to ensure Positive Semi-Definiteness. 
+1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space, natively embedding the square root of twice the Normalized Variation of Information ($\sqrt{2 \cdot NVI}$) to ensure Positive Semi-Definiteness. 
 2. It algebraically mitigates positive estimation bias, perfectly centering the macroscopic noise bulk at zero and leaving the matrix to map pure **Topological Information Variance**.
 
 By utilizing a highly optimized C++ backend to evaluate this matrix, the Entropic Scree:
@@ -124,7 +124,7 @@ Copy and paste the following code block into your R console or RStudio to downlo
 
 ```R
 # 1. Define the direct URL to the raw script on GitHub
-url <- "[https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R](https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R)"
+url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R"(https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R)"
 
 # 2. Define what you want to name the file on your computer
 file_name <- "Entropic_Scree_R_Simulation - ENLI.R"
