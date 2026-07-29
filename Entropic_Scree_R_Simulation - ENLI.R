@@ -1016,10 +1016,16 @@ cat(sprintf("Kernel PCA (RBF) completed in %.2f seconds.\n", kpca_time))
 rm(K_c); gc(verbose = FALSE)
 
 # --- 5D. BUILD COMPARISON DATAFRAME ---
-# Pad N-length vectors with zeros to match m_total
-pca_padded <- c(pca_eigenvalues, rep(0, m_total - length(pca_eigenvalues)))
-spearman_padded <- c(spearman_eigenvalues, rep(0, m_total - length(spearman_eigenvalues)))
-kpca_padded <- c(kpca_eigenvalues, rep(0, m_total - length(kpca_eigenvalues)))
+# Helper function to safely pad (if m > N) or truncate (if N > m) to match m_total
+safe_pad <- function(eig, m) {
+  if (length(eig) > m) return(eig[1:m])
+  if (length(eig) < m) return(c(eig, rep(0, m - length(eig))))
+  return(eig)
+}
+
+pca_padded <- safe_pad(pca_eigenvalues, m_total)
+spearman_padded <- safe_pad(spearman_eigenvalues, m_total)
+kpca_padded <- safe_pad(kpca_eigenvalues, m_total)
 
 df_compare <- data.frame(
   Rank = rep(1:m_total, 4),
