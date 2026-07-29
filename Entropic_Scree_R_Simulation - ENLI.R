@@ -198,7 +198,7 @@ calculate_entropic_scree <- function(data
   
   cat("[3/10] Discretizing continuous data and dense-ranking categoricals...\n")
   if (is.null(num_bins)) {
-    num_bins <- max(2, floor(bin_multiplier * nrow(dt)^(1/3))) 
+    num_bins <- max(2, ceiling(bin_multiplier * nrow(dt)^(1/3))) 
   }
   
   cols <- names(dt)
