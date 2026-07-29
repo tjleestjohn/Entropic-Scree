@@ -24,8 +24,6 @@
 > While all statistical estimators are universally bound by the resolution limits of finite sample sizes, this framework refuses to hallucinate spurious dimensions when those limits are reached. 
 >
 > *“Ultimately, what it extracts is not an unobservable physical parts list, but a true operational map of what your environment possesses the statistical power to resolve.”* 
->
-> *“Ultimately, what the methodology extracts is not a physical parts list, but an operational map of what the environment possesses the statistical power to resolve.”*
 
 ---
 
