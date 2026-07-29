@@ -449,7 +449,7 @@ calculate_entropic_scree <- function(data
   cat(sprintf(" -> %-50s : %.3f%%\n", "%", pct_prob_volume))
   cat("      (Unique Signal + Structural Uncertainty + \u22A5 Measurement Error)\n")
   cat("-----------------------------------------------------------------\n")
-  cat(sprintf(" -> %-50s : %.3f\n", "Redundant Signal Volume (Tr_Mc - R_eff)", redundant_signal_volume))
+  cat(sprintf(" -> %-50s : %.3f\n", "Redundant Signal Volume (m - R_eff)", redundant_signal_volume))
   cat(sprintf(" -> %-50s : %.3f%%\n", "%", pct_redundant_signal))
   cat("-----------------------------------------------------------------\n")
   cat(sprintf(" -> %-50s : %d\n", "Eigenvalues > Mean Trace", n_eigen_gt_mean))
