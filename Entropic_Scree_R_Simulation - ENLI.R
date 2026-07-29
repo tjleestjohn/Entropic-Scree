@@ -590,10 +590,13 @@ calculate_entropic_scree <- function(data
           cat("\n=================================================================\n")
           cat(sprintf(" (PREVIEW) ELBOW LATENT METRICS FOR K_elbow = %d\n", K_final))
           cat("=================================================================\n")
+          STR_prev <- FSIG_prev / FSIG_prev[1]
           cat(sprintf(" -> Preview Rank (K_elbow)      : %d\n", K_final))
           cat(sprintf(" -> Avg Info Gravity (AIG)      : %.3f\n", AIG_prev))
           cat(" -> Factor-Specific Informational Gravity (FSIG):\n")
           print(round(FSIG_prev, 3))
+          cat(" -> Structural Topology Ratio (Relative to FSIG_1):\n")
+          print(round(STR_prev, 3))
           cat("=================================================================\n\n")
           
           first_prompt <- FALSE
@@ -618,10 +621,13 @@ calculate_entropic_scree <- function(data
   cat("\n=================================================================\n")
   cat(" (FINAL) ELBOW LATENT METRICS (based user-confirmed K_elbow)\n")
   cat("=================================================================\n")
+  STR_final <- FSIG_final / FSIG_final[1]
   cat(sprintf(" -> Final Retained Rank (K_elbow)     : %d\n", K_final))
   cat(sprintf(" -> Avg Info Gravity (AIG)            : %.3f\n", AIG))
   cat(" -> Factor-Specific Informational Gravity (FSIG):\n")
   print(round(FSIG_final, 3))
+  cat(" -> Structural Topology Ratio (Relative to FSIG_1):\n")
+  print(round(STR_final, 3))
   cat("=================================================================\n\n")
   
   # ============================================================================
@@ -689,6 +695,7 @@ calculate_entropic_scree <- function(data
     idiosyncratic_noise_volume = idiosyncratic_noise_volume,
     AIG = AIG,
     FSIG_final = FSIG_final,
+    structural_topology_profile = STR_final,
     FSIG_extended_bulk = FSIG_extended_bulk,
     FSIG_extended_kaiser = FSIG_extended_kaiser,
     eigenvectors = eigen_res$vectors
