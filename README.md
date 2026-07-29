@@ -19,7 +19,9 @@
 >
 > If you have high-dimensional, mixed-type, noisy tabular data, standard Principal Component Analysis (PCA) will systematically misrepresent its true dimensionality. Standard topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration. 
 >
-> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to reveal the true underlying generative rank of your data. It bypasses algebraic sample-size limits ($m > N$), handles non-linear interactions natively, and provides actionable engineering metrics (Informational Gravity) to map the true topology of your data.
+> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back to their generative roots. 
+>
+> *“Ultimately, what the methodology extracts is not a physical parts list, but an operational map of what the environment possesses the statistical power to resolve.”*
 
 ---
 
@@ -57,7 +59,7 @@ Exactly like Cattell's classical variance-based scree test, the Entropic Scree i
 
 However, to provide an optional baseline convenience utility for rapid exploratory analysis, the script employs a two-tiered automated heuristic. First, it establishes a strict boundary by identifying the macroscopic noise cliff (the top of the unstructured noise floor) to ensure the search never wanders into the idiosyncratic baseline. Then, operating exclusively within this bounded signal space, the primary engine identifies the structural elbow via the Maximum Secondary Eigenvalue Ratio (Log-Gap test). The algorithm explicitly skips the primary gap to bypass the massive global size gradient. Then, by evaluating the remaining dimensions using relative percentage drops rather than absolute topological variance, it resolves the scale imbalance between massive and subtle generative factors,  isolating the maximum subsequent drop and using that as the estimate where the signal collapses into the noise floor.
 
-**⚠️ Heuristic Warning ⚠️** The automated scanner is provided strictly as a computationally tractable heuristic proxy, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to ensure the correct generative rank is selected.
+**⚠️ Heuristic Warning ⚠️** Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers—which can produce large internal informational variance drops independent of the noise floor—and because idiosyncratic noise distributions themselves contain unpredictable localized structures, the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to verify the true macroscopic generative boundary.
 
 ---
 
