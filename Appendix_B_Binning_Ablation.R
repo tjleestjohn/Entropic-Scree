@@ -7,9 +7,9 @@ if (!requireNamespace("patchwork", quietly = TRUE)) install.packages("patchwork"
 library(ggplot2)
 library(patchwork)
 
-cat("\n[1/3] Extracting baseline eigenvalues (17 bins)...\n")
+cat("\n[1/3] Extracting baseline eigenvalues (18 bins)...\n")
 # 1. Grab the baseline from your original primary results object
-eig_17 <- results$eigenvalues
+eig_18 <- results$eigenvalues
 
 # 2. Re-run the engine quickly for 71 and 152 bins just to grab their eigenspectra 
 cat("[2/3] Fetching eigenspectrum for 71 bins...\n")
@@ -69,7 +69,7 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
   return(p)
 }
 # Generate the 3 panels (atop() stacks the text onto two lines)
-p1 <- create_panel(eig_17, bquote(atop(bold("Conservative Default" ~ (N^{1/3})), bold("[17 Bins]"))), hide_y_label = FALSE)
+p1 <- create_panel(eig_18, bquote(atop(bold("Conservative Default" ~ (N^{1/3})), bold("[18 Bins]"))), hide_y_label = FALSE)
 p2 <- create_panel(eig_71, bquote(atop(bold("Dense" ~ (N^{1/2})), bold("[71 Bins]"))), hide_y_label = TRUE)
 p3 <- create_panel(eig_152, bquote(atop(bold("Freedman-Diaconis" ~ phantom(N^{1/2})), bold("[152 Bins]"))), hide_y_label = TRUE)
 
