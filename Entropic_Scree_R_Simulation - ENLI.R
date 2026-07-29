@@ -888,12 +888,10 @@ BINARY_ERROR_RATE <- 0.15   # 0.0 is perfect sensor, 0.50 is pure static coin-fl
 cat(sprintf("Generating Mixed Synthetic Universe: %s rows, %d Proxies, %d Latent Drivers...\n", format(N_ROWS, big.mark=","), M_PROXIES, K_TRUE))
 
 # 1. Generate S(1) Latent Space
-medium_corr_matrix <- generate_random_corr_matrix(K_TRUE)
 identity_matrix <- diag(K_TRUE)
 Z_latent_continuous <- MASS::mvrnorm(n = N_ROWS
                                      , mu = rep(0, K_TRUE)
-                                     , Sigma = identity_matrix # Change to medium_corr_matrix for correlated states
-)
+                                     , Sigma = identity_matrix)
 
 # 2. Calculate Theoretical Ceiling
 s1_df <- as.data.frame(Z_latent_continuous)
