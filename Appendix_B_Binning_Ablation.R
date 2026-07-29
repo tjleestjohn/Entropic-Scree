@@ -7,30 +7,62 @@ if (!requireNamespace("patchwork", quietly = TRUE)) install.packages("patchwork"
 library(ggplot2)
 library(patchwork)
 
-cat("\n[1/3] Extracting baseline eigenvalues (18 bins)...\n")
-# 1. Grab the baseline from your original primary results object
-eig_18 <- results$eigenvalues
+# ------------------------------------------------------------------------------
+# 1. DYNAMICALLY CALCULATE BIN TARGETS BASED ON CURRENT 'N'
+# ------------------------------------------------------------------------------
+n_rows <- nrow(observed_data)
 
-# 2. Re-run the engine quickly for 71 and 152 bins just to grab their eigenspectra 
-cat("[2/3] Fetching eigenspectrum for 71 bins...\n")
-capture.output({
-  res_71 <- calculate_entropic_scree(data = observed_data
-                                     , num_bins = 71 
-                                     , interactive_mode = FALSE 
-                                     , purge_constants = FALSE 
-                                     , check_collinearity = FALSE)
-})
-eig_71 <- res_71$eigenvalues
+bin_default <- ceiling(n_rows^(1/3))
+bin_dense   <- ceiling(sqrt(n_rows))
 
-cat("[3/3] Fetching eigenspectrum for 152 bins...\n")
+# Dynamically estimate Freedman-Diaconis across a sample of continuous variables
+# (Filtering for variables with >10 unique values as a proxy for continuous)
+cont_cols <- names(observed_data)[sapply(observed_data, function(x) data.table::uniqueN(x) > 10)]
+
+if(length(cont_cols) > 0) {
+  set.seed(42)
+  sample_cols <- sample(cont_cols, min(100, length(cont_cols)))
+  # Use base R's nclass.FD to get the Freedman-Diaconis bins per variable
+  fd_counts <- sapply(observed_data[, ..sample_cols], nclass.FD)
+  bin_extreme <- round(mean(fd_counts))
+} else {
+  bin_extreme <- ceiling(n_rows^(2/3)) # Safe fallback if no continuous vars exist
+}
+
+cat("\n=================================================================\n")
+cat(" DYNAMIC ABLATION TARGETS\n")
+cat("=================================================================\n")
+cat(sprintf(" -> Conservative (N^(1/3)) : %d bins\n", bin_default))
+cat(sprintf(" -> Dense (N^(1/2))        : %d bins\n", bin_dense))
+cat(sprintf(" -> Extreme (FD Avg)       : %d bins\n", bin_extreme))
+cat("=================================================================\n")
+
+# ------------------------------------------------------------------------------
+# 2. RUN EXTRACTIONS
+# ------------------------------------------------------------------------------
+cat(sprintf("\n[1/3] Extracting baseline eigenvalues (%d bins)...\n", bin_default))
+# Grab the baseline from original primary results object
+eig_default <- results$eigenvalues
+
+cat(sprintf("[2/3] Fetching eigenspectrum for %d bins...\n", bin_dense))
 capture.output({
-  res_152 <- calculate_entropic_scree(data = observed_data
-                                      , num_bins = 152
-                                      , interactive_mode = FALSE
-                                      , purge_constants = FALSE
-                                      , check_collinearity = FALSE)
+  res_dense <- calculate_entropic_scree(data = observed_data
+                                        , num_bins = bin_dense 
+                                        , interactive_mode = FALSE 
+                                        , purge_constants = FALSE 
+                                        , check_collinearity = FALSE)
 })
-eig_152 <- res_152$eigenvalues
+eig_dense <- res_dense$eigenvalues
+
+cat(sprintf("[3/3] Fetching eigenspectrum for %d bins...\n", bin_extreme))
+capture.output({
+  res_extreme <- calculate_entropic_scree(data = observed_data
+                                          , num_bins = bin_extreme
+                                          , interactive_mode = FALSE
+                                          , purge_constants = FALSE
+                                          , check_collinearity = FALSE)
+})
+eig_extreme <- res_extreme$eigenvalues
 
 # ==============================================================================
 # PLOTTING ENGINE
@@ -47,9 +79,9 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
   p <- ggplot(df, aes(x = Rank, y = Eigenvalue)) +
     geom_line(color = "dodgerblue", linewidth = 1) +
     geom_point(color = "dodgerblue", size = 1.5) +
-    # True generative boundary (Invariant)
-    geom_vline(xintercept = 10, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
-    # Visual guide for the noise artifact at 55
+    # True generative boundary (Dynamically points to K_TRUE from global environment)
+    geom_vline(xintercept = K_TRUE, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
+    # Visual guide for the noise artifact at 55 (Note: this is tied specifically to the N=5000, M=10000 setup)
     geom_vline(xintercept = 55, color = "gray60", linetype = "dotted", linewidth = 1) +
     scale_y_continuous(trans = 'log10') +
     # Use coord_cartesian to visually zoom without discarding the first data point
@@ -68,17 +100,18 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
   
   return(p)
 }
-# Generate the 3 panels (atop() stacks the text onto two lines)
-p1 <- create_panel(eig_18, bquote(atop(bold("Conservative Default" ~ (N^{1/3})), bold("[18 Bins]"))), hide_y_label = FALSE)
-p2 <- create_panel(eig_71, bquote(atop(bold("Dense" ~ (N^{1/2})), bold("[71 Bins]"))), hide_y_label = TRUE)
-p3 <- create_panel(eig_152, bquote(atop(bold("Freedman-Diaconis" ~ phantom(N^{1/2})), bold("[152 Bins]"))), hide_y_label = TRUE)
+
+# Generate the 3 panels dynamically (bquote and sprintf insert the exact dynamic bin counts)
+p1 <- create_panel(eig_default, bquote(atop(bold("Conservative Default" ~ (N^{1/3})), bold(.(sprintf("[%d Bins]", bin_default))))), hide_y_label = FALSE)
+p2 <- create_panel(eig_dense, bquote(atop(bold("Dense" ~ (N^{1/2})), bold(.(sprintf("[%d Bins]", bin_dense))))), hide_y_label = TRUE)
+p3 <- create_panel(eig_extreme, bquote(atop(bold("Freedman-Diaconis" ~ phantom(N^{1/2})), bold(.(sprintf("[%d Bins]", bin_extreme))))), hide_y_label = TRUE)
 
 # Combine using patchwork
 final_plot <- p1 + p2 + p3 + 
   plot_layout(ncol = 3) + 
   plot_annotation(
     title = "Eigenspectra Across Discretization Regimes",
-    subtitle = "Generative signal (K=10) remains invariant while the internal noise artifact (K=55) dissolves",
+    subtitle = sprintf("Generative signal (K=%d) remains invariant while internal noise artifacts dissolve", K_TRUE),
     theme = theme(
       plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
       plot.subtitle = element_text(size = 14, hjust = 0.5, color = "gray30", margin = margin(b = 15))
