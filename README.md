@@ -72,6 +72,7 @@ The Entropic Scree doesn't just count dimensions; it calculates their exact prob
 * **Idiosyncratic Noise Volume:** The remaining unshared probability volume consisting of Structural Uncertainty and independent Measurement Error.
 * **AIG (Average Informational Gravity):** How much physical data (in column equivalents) the average extracted signal factor accounts for.
 * **FSIG (Factor-Specific Informational Gravity):** The specific structural weight of individual signal axes, allowing you to assess the ability to disentangle dominant signals from weak, secondary signals.
+* **Structural Topology Ratio:** The ratio of the secondary factors to the primary topological axis ($FSIG_{2-K} / FSIG_1$). This acts as a direct diagnostic of the system's macroscopic network topology, determining whether the variables form a highly centralized, entangled web or a decentralized, modular environment.
 
 ---
 
