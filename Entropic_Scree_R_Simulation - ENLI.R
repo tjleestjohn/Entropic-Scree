@@ -285,7 +285,7 @@ calculate_entropic_scree <- function(data
   }
   
   # ==========================================================================
-  # DIAGNOSTIC ONLY: MACRO GAP (NOISE Cliff BOUNDARY)
+  # STEP 1: MACRO GAP BOUNDARY (NOISE CLIFF DETECTION)
   # ==========================================================================
   n_total <- length(eig_vals)
   valid_k <- sum(eig_vals > mean_trace) 
@@ -323,7 +323,7 @@ calculate_entropic_scree <- function(data
   }
   
   # ==========================================================================
-  # PRIMARY ENGINE: MAXIMUM SECONDARY EIGENVALUE RATIO (LOG-GAP)
+  # STEP 2: MAXIMUM SECONDARY EIGENVALUE RATIO (LOG-GAP)
   # ==========================================================================
   
   valid_search_space <- eig_vals[eig_vals > 1e-8]
