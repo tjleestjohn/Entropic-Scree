@@ -750,8 +750,10 @@ calculate_entropic_scree <- function(data
   p_core <- core_eigenvals / sum(core_eigenvals)
   FSIG_final <- p_core * total_signal_volume
   
+  elbow_label <- ifelse(interactive_mode, "user-confirmed K_elbow", "automated Log-Gap baseline")
+  
   cat("\n=================================================================\n")
-  cat(" (FINAL) ELBOW LATENT METRICS (based user-confirmed K_elbow)\n")
+  cat(sprintf(" (FINAL) ELBOW LATENT METRICS (based on %s)\n", elbow_label))
   cat("=================================================================\n")
   STR_final <- FSIG_final / FSIG_final[1]
   cat(sprintf(" -> Final Retained Rank (K_elbow)     : %d\n", K_final))
@@ -770,7 +772,7 @@ calculate_entropic_scree <- function(data
   idiosyncratic_noise_volume <- R_eff * noise_weight
   
   cat("=================================================================\n")
-  cat(sprintf(" (FINAL) TRIPARTITE STRUCTURAL COMPOSITION (based user-confirmed K_elbow = %d)\n", K_final))
+  cat(sprintf(" (FINAL) TRIPARTITE STRUCTURAL COMPOSITION (based on %s = %d)\n", elbow_label, K_final))
   cat("=================================================================\n")
   cat(sprintf(" -> %-50s : %d\n", "Valid Variables (m)", m_valid))
   cat(sprintf(" -> %-50s : %.2f\n", "Centered Trace (Tr_Mc)", Tr_Mc))
