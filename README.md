@@ -25,7 +25,7 @@
 >
 > While all statistical estimators are universally bound by the resolution limits of finite sample sizes and predictor breadth, this framework ensures that complex non-linearities are permanently collapsed to their root rather than fragmented into spurious dimensions.
 >
-> “Ultimately, what it extracts is not an unobservable physical parts list, but an operational map of what your environment possesses the statistical and structural power to resolve.”
+> Ultimately, what it extracts is not an unobservable physical parts list, but an operational map of what your environment possesses the statistical and structural power to resolve.
 
 ---
 
