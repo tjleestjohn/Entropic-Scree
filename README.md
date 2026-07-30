@@ -61,9 +61,9 @@ Exactly like Cattell's classical variance-based scree test, the Entropic Scree i
 
 However, to provide an optional baseline convenience utility for rapid exploratory analysis, the script employs a Dual-Diagnostic Ensemble to automate extraction. First, it estimates a strict boundary for the macroscopic noise cliff (the top of the unstructured noise floor) to ensure the search never wanders into the idiosyncratic baseline. Then, operating exclusively within this bounded signal space, two independent engines evaluate the phase transition:
 
-Engine A (Log-Gap): Identifies the structural elbow by maximizing the logarithmic percentage drop between successive eigenvalues, resolving the scale imbalance between massive and subtle generative factors.
+* **Engine A (Log-Gap):** Identifies the structural elbow by maximizing the logarithmic percentage drop between successive eigenvalues, resolving the scale imbalance between massive and subtle generative factors.
 
-Engine B (Triple-Tap): Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 10-point quadratic regression to identify the exact index where the signal violently breaks out of the expected noise trajectory.
+* **Engine B (Triple-Tap):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 10-point quadratic regression to identify the exact index where the signal violently breaks out of the expected noise trajectory.
 
 **⚠️ Heuristic Warning ⚠️** Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers — which can produce large internal informational variance drops independent of the noise floor — and because idiosyncratic noise distributions themselves contain unpredictable localized structures, the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to verify the true macroscopic generative boundary.
 
@@ -121,12 +121,12 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 
 ## <a id="-usage-r-script"></a>💻 Simulation (R Script)
 
-This repository includes a fully-annotated simulation in R that is **available to run now**. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, sparse and highly modular network topology, $\sim 99.5\%$ idiosyncratic noise, non-linear distortion), demonstrates the systematic degradation of standard PCA, and utilizes the Entropic Scree to extract the true generative rank ($r=10$).
+This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, highly centralized and entangled network topology, $\sim 99.5\%$ idiosyncratic noise, non-linear distortion), demonstrates the systematic degradation of standard PCA, and utilizes the Entropic Scree to extract the true generative rank ($r=10$).
 
 **Notes:**
-* **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
-* **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading natively in RAM.
-* **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the automated log-gap heuristic to extract the rank and complete the baseline comparisons without requiring manual console input.
+* **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., Rcpp, data.table, ggplot2) upon the first run.
+* **C++ Backend:** The pairwise mutual information engine is written in C++ via Rcpp and utilizes OpenMP for rapid multi-threading natively in RAM.
+* **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the dual Log-Gap and Triple-Tap convergence to extract the rank and complete the baseline comparisons without requiring manual console input.
 
 ### Quick Start
 Copy and paste the following code block into your R console or RStudio to download and open the script directly:
@@ -146,7 +146,7 @@ file.edit(file_name)
 ```
 
 ### Advanced Validation: Discretization Ablation (Appendix B)
-The repository also includes `Appendix_B_Binning_Ablation.R`. This script reproduces the stress-test from the paper's appendix, proving that while extreme binning heuristics (like Freedman-Diaconis) artificially compress probabilistic volume ($R_{eff}$), the extraction of the underlying generative rank ($K_{elbow} = 10$) remains mathematically invariant. It also automatically generates the 1x3 panel graph showing the structural noise artifact dissolving.
+The repository also includes `Appendix_B_Binning_Ablation.R`. This script reproduces the stress-test from the paper's appendix, proving that while extreme binning heuristics (like Freedman-Diaconis) artificially compress probabilistic volume ($R_{eff}$), the extraction of the underlying generative rank ($K_{elbow} = 10$) remains mathematically invariant. It also automatically generates the 1x3 panel graph showing the generative signal remaining cleanly separated despite the artificial inflation of the continuous noise tail.
 
 **Instructions:** Run this script in the exact same R workspace **immediately following** the successful execution of the main simulation script. It relies on the synthetic `observed_data` matrix already generated in your computer's memory by the primary simulation, ensuring you don't have to wait for the hostile environment to be generated twice.
 
