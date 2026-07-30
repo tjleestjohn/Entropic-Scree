@@ -124,8 +124,8 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=10,000$, $N=5,000$, highly centralized and entangled network topology, $\sim 99.5\%$ idiosyncratic noise, non-linear distortion), demonstrates the systematic degradation of standard PCA, and utilizes the Entropic Scree to extract the true generative rank ($r=10$).
 
 **Notes:**
-* **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., Rcpp, data.table, ggplot2) upon the first run.
-* **C++ Backend:** The pairwise mutual information engine is written in C++ via Rcpp and utilizes OpenMP for rapid multi-threading natively in RAM.
+* **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
+* **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading natively in RAM.
 * **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the dual Log-Gap and Triple-Tap convergence to extract the rank and complete the baseline comparisons without requiring manual console input.
 
 ### Quick Start
