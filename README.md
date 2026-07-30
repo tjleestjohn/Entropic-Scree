@@ -4,9 +4,9 @@
 
 *[Enli: Predictive systems that remain stable under change](https://www.enli.com.au)*
 
-### Initial Methods & Function Release: July 2026
-
 **Links**
+
+###### Initial Methods & Function Release: July 2026
 
 [![Read arXiv Preprint (Coming Soon)](https://img.shields.io/badge/arXiv_Preprint-Coming_Soon-lightgrey?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
