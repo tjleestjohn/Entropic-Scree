@@ -3,9 +3,9 @@
 #
 # Author: Terrence J. Lee-St. John, PhD
 # Organization: Enli (www.enli.com.au)
-# 
-# Description: Generates a high-dimensional, mixed-type, noisy synthetic 
-# dataset to demonstrate the systematic degradation of standard PCA, and utilizes 
+#
+# Description: Generates a high-dimensional, mixed-type, noisy synthetic
+# dataset to demonstrate the systematic degradation of standard PCA, and utilizes
 # the Entropic Scree to extract the Latent Generative Rank (r).
 # ==============================================================================
 
@@ -71,13 +71,13 @@ NumericMatrix fast_parallel_MI(IntegerMatrix mat, int num_bins, int cores) {
     int n = mat.nrow();
     int p = mat.ncol();
     NumericMatrix MI(p, p);
-    
+   
     std::vector<std::vector<int>> margins(p, std::vector<int>(num_bins, 0));
     std::vector<double> H(p, 0.0);
 
     for(int j = 0; j < p; ++j) {
         for(int i = 0; i < n; ++i) {
-            int val = mat(i, j) - 1; 
+            int val = mat(i, j) - 1;
             if(val >= 0 && val < num_bins) margins[j][val]++;
         }
         double entropy = 0.0;
@@ -95,7 +95,7 @@ NumericMatrix fast_parallel_MI(IntegerMatrix mat, int num_bins, int cores) {
     for(int i = 0; i < p; ++i) {
         for(int j = i + 1; j < p; ++j) {
             std::vector<int> joint(num_bins * num_bins, 0);
-            
+           
             for(int row = 0; row < n; ++row) {
                 int val1 = mat(row, i) - 1;
                 int val2 = mat(row, j) - 1;
@@ -103,7 +103,7 @@ NumericMatrix fast_parallel_MI(IntegerMatrix mat, int num_bins, int cores) {
                     joint[val1 * num_bins + val2]++;
                 }
             }
-            
+           
             double joint_entropy = 0.0;
             for(int k = 0; k < num_bins * num_bins; ++k) {
                 if(joint[k] > 0) {
@@ -111,10 +111,10 @@ NumericMatrix fast_parallel_MI(IntegerMatrix mat, int num_bins, int cores) {
                     joint_entropy -= prob * log(prob);
                 }
             }
-            
+           
             double mi_val = H[i] + H[j] - joint_entropy;
-            if (mi_val < 0) mi_val = 0; 
-            
+            if (mi_val < 0) mi_val = 0;
+           
             MI(i, j) = mi_val;
             MI(j, i) = mi_val;
         }
@@ -274,7 +274,7 @@ calculate_entropic_scree <- function(data
   # Constructive Spectral Mass (sum of positive clipped eigenvalues)
   m_plus <- sum(eig_vals)
   
-  cat("[10/10] Calculating R_eff and Estimating Elbow...\n")
+  cat("[10/10] Calculating R_eff and Estimating Elbows...\n")
   sig_vals <- eig_vals[eig_vals > 0]
   if (length(sig_vals) > 0) {
     p_vals <- sig_vals / sum(sig_vals)
@@ -294,8 +294,6 @@ calculate_entropic_scree <- function(data
   macro_actual_gap <- NA_real_
   macro_gap_ratio <- NA_real_
   top_of_bulk_idx <- NA_integer_
-  elbow_ratio <- NA_real_
-  elbow_pct_drop <- NA_real_
   
   valid_search_space <- eig_vals[eig_vals > 1e-8]
   
@@ -309,7 +307,7 @@ calculate_entropic_scree <- function(data
       noise_gaps <- all_gaps_diag[noise_tail_idx]
       max_noise_gap <- max(noise_gaps)
       
-      macro_multiplier <- 20
+      macro_multiplier <- 20.0
       gap_threshold <- max(1e-6, max_noise_gap * macro_multiplier) 
       
       macroscopic_gap_indices <- which(all_gaps_diag > gap_threshold)
@@ -322,59 +320,147 @@ calculate_entropic_scree <- function(data
     }
   }
   
-  # ==========================================================================
-  # STEP 2: MAXIMUM SECONDARY EIGENVALUE RATIO (LOG-GAP)
-  # ==========================================================================
+  search_start_idx <- if (!is.na(top_of_bulk_idx)) max(2, top_of_bulk_idx - 1) else valid_k
   
-  valid_search_space <- eig_vals[eig_vals > 1e-8]
+  # ==========================================================================
+  # STEP 2: ENGINE A - MAXIMUM SECONDARY EIGENVALUE RATIO (LOG-GAP)
+  # ==========================================================================
+  K_log_gap <- NA_integer_
+  log_gap_pct_drop <- NA_real_
+  log_gap_ratio <- NA_real_
   n_valid_search <- length(valid_search_space)
   
   if (n_valid_search >= 3) {
-    # Transform to Log-Space to evaluate the relative Ratio (percentage drop)
-    all_gaps <- abs(diff(log(valid_search_space)))
+    all_log_gaps <- abs(diff(log(valid_search_space)))
     
-    # --- EDGE CASE: Ultra-low rank (Macro gap boundary severely truncates search space) ---
     if (!is.na(top_of_bulk_idx) && top_of_bulk_idx < 4) {
-      ordered_gaps <- order(all_gaps, decreasing = TRUE)
+      # Ultra-low rank edge case
+      ordered_gaps <- order(all_log_gaps, decreasing = TRUE)
       second_largest_gap_idx <- ordered_gaps[2]
-      
-      # >= ensures any gap at or after the start of the noise is bypassed
       if (second_largest_gap_idx >= top_of_bulk_idx) {
-        K_elbow <- max(1, top_of_bulk_idx - 1)
-        elbow_method <- "Macro Gap Boundary - 1"
+        K_log_gap <- max(1, top_of_bulk_idx - 1)
       } else {
-        K_elbow <- second_largest_gap_idx
-        elbow_method <- "Second Largest Eigenvalue Ratio"
+        K_log_gap <- second_largest_gap_idx
       }
     } else {
-      # --- STANDARD ENGINE (Maximum Secondary Eigenvalue Ratio) ---
-      # Bound the search space by the top of the bulk if it exists
-      if (!is.na(top_of_bulk_idx) && top_of_bulk_idx > 2) {
-        search_limit <- top_of_bulk_idx - 1
-        secondary_gaps <- all_gaps[2:search_limit]
+      # Standard Evaluation
+      search_limit <- if (!is.na(top_of_bulk_idx)) max(2, top_of_bulk_idx - 1) else length(all_log_gaps)
+      if (search_limit >= 2) {
+        secondary_gaps <- all_log_gaps[2:search_limit]
+        K_log_gap <- which.max(secondary_gaps) + 1
       } else {
-        secondary_gaps <- all_gaps[2:length(all_gaps)] 
+        K_log_gap <- 1
       }
-      K_elbow <- which.max(secondary_gaps) + 1
-      
-      # Final safety clamp
-      if (!is.na(top_of_bulk_idx) && K_elbow >= top_of_bulk_idx) {
-        K_elbow <- max(1, top_of_bulk_idx - 1)
-      }
-      elbow_method <- "Maximum Secondary Eigenvalue Ratio"
     }
   } else {
-    K_elbow <- max(1, valid_k)
-    elbow_method <- "Kaiser Criterion (> Mean Trace)"
+    K_log_gap <- max(1, valid_k)
   }
   
-  if (K_elbow < length(eig_vals)) {
-    val_current <- eig_vals[K_elbow]
-    val_next <- eig_vals[K_elbow + 1]
+  if (K_log_gap < length(eig_vals)) {
+    val_current <- eig_vals[K_log_gap]
+    val_next <- eig_vals[K_log_gap + 1]
     if (val_next > 1e-12) {
-      elbow_ratio <- val_current / val_next
-      elbow_pct_drop <- (1 - (val_next / val_current)) * 100
+      log_gap_ratio <- val_current / val_next
+      log_gap_pct_drop <- (1 - (val_next / val_current)) * 100
     }
+  }
+  
+  # ==========================================================================
+  # STEP 3: ENGINE B - TRIPLE-TAP (10-POINT QUADRATIC WITH MACRO-STITCH)
+  # ==========================================================================
+  K_triple_tap <- NA_integer_
+  triple_tap_multiplier <- NA_real_
+  triple_tap_actual_sigma <- NA_real_
+  triple_tap_expected_val <- NA_real_
+  triple_tap_actual_val <- NA_real_
+  prob_target <- NA_real_
+  stitch_applied <- FALSE
+  
+  if (search_start_idx >= 3) {
+    # 1. Apply the Topological Stitch directly to the eigenvalues
+    stitched_eig_vals <- eig_vals
+    if (!is.na(top_of_bulk_idx) && !is.na(macro_actual_gap)) {
+      stitch_constant <- 0.5 * macro_actual_gap
+      # Add constant to all eigenvalues at or inside the noise bulk
+      stitched_eig_vals[top_of_bulk_idx:length(stitched_eig_vals)] <- stitched_eig_vals[top_of_bulk_idx:length(stitched_eig_vals)] + stitch_constant
+      stitch_applied <- TRUE
+    }
+    
+    # 2. Dynamically scale sigma using t-dist to target a family-wise false positive rate of 1/1000
+    prob_target <- 1 - (1 / (1000 * search_start_idx))
+    
+    # Pre-compute design matrix for the 10-point reference window (x = 0 to 9)
+    x_ref <- 0:9
+    X_mat <- cbind(1, x_ref, x_ref^2)
+    
+    # Scan backwards from the top of the bounded space down to 1
+    for (i in seq(search_start_idx, 1, by = -1)) {
+      target_val <- stitched_eig_vals[i]
+      
+      # Reference window: next 10 eigenvalues to calculate quadratic expectation
+      ref_start <- i + 1
+      ref_end <- min(length(stitched_eig_vals), i + 10)
+      
+      if (ref_start > length(stitched_eig_vals)) next # Safety check at the absolute tail
+      
+      ref_vals <- stitched_eig_vals[ref_start:ref_end]
+      
+      if (length(ref_vals) == 10) {
+        # Fit 2nd degree polynomial (3 params). df = 10 points - 3 params = 7
+        df_local <- 7
+        dynamic_t <- qt(prob_target, df = df_local)
+        current_multiplier <- max(2.0, dynamic_t)
+        
+        fit <- lm.fit(x = X_mat, y = ref_vals)
+        
+        # Intercept is the prediction at the first reference point (x = 0).
+        # We predict the target eigenvalue one step backward (x = -1).
+        expected_val <- fit$coefficients[1] - fit$coefficients[2] + fit$coefficients[3]
+        
+        # Protect against polynomial overshoot pulling the expected value negative
+        expected_val <- max(1e-12, expected_val)
+        
+        # Calculate local standard deviation of residuals (RSS / df)
+        rss <- sum(fit$residuals^2)
+        local_sd <- max(1e-12, sqrt(rss / df_local)) 
+        
+        if (target_val > (expected_val + current_multiplier * local_sd)) {
+          K_triple_tap <- i
+          triple_tap_multiplier <- current_multiplier
+          triple_tap_expected_val <- expected_val
+          triple_tap_actual_val <- target_val
+          triple_tap_actual_sigma <- (target_val - expected_val) / local_sd
+          break
+        }
+      } else if (length(ref_vals) >= 2) {
+        # Fallback for the absolute tail where 10 points are not available. df = n - 1
+        df_local <- length(ref_vals) - 1
+        dynamic_t <- qt(prob_target, df = df_local)
+        current_multiplier <- max(2.0, dynamic_t)
+        
+        local_mean <- mean(ref_vals)
+        local_sd <- max(1e-12, sd(ref_vals))
+        
+        if (target_val > (local_mean + current_multiplier * local_sd)) {
+          K_triple_tap <- i
+          triple_tap_multiplier <- current_multiplier
+          triple_tap_expected_val <- local_mean
+          triple_tap_actual_val <- target_val
+          triple_tap_actual_sigma <- (target_val - local_mean) / local_sd
+          break
+        }
+      }
+    }
+  }
+  
+  # Fallback if Triple-Tap never triggers
+  if (is.na(K_triple_tap)) {
+    K_triple_tap <- K_log_gap
+  }
+  
+  # Safely capture the multiplier for the printout if it never broke but we had space
+  if (is.na(triple_tap_multiplier) && search_start_idx >= 3) {
+    triple_tap_multiplier <- max(2.0, qt(1 - (1 / (1000 * search_start_idx)), df = 7))
   }
   
   # ============================================================================
@@ -388,25 +474,39 @@ calculate_entropic_scree <- function(data
   n_eigen_le_mean <- n_total - valid_k
   
   if (requireNamespace("ggplot2", quietly = TRUE)) {
+    
+    # Define dual-lines for GGplot dynamically based on convergence
+    if (K_log_gap == K_triple_tap) {
+      lines_geom <- ggplot2::geom_vline(xintercept = K_log_gap, color = "forestgreen", linetype = "dashed", linewidth = 1.2)
+      sub_title_text <- sprintf("Dual-Confirmed Auto Elbow = %d", K_log_gap)
+    } else {
+      lines_geom <- list(
+        ggplot2::geom_vline(xintercept = K_log_gap, color = "#D55E00", linetype = "dashed", linewidth = 1.2),
+        ggplot2::geom_vline(xintercept = K_triple_tap, color = "purple", linetype = "twodash", linewidth = 1.2)
+      )
+      sub_title_text <- sprintf("Auto Elbows Diverged: Log-Gap (Orange) = %d | Triple-Tap (Purple) = %d", K_log_gap, K_triple_tap)
+    }
+    
     # ZOOMED VIEW
-    zoom_start <- max(1, K_elbow - 5)
-    zoom_end <- min(length(eig_vals), K_elbow + 15)
+    max_k <- max(K_log_gap, K_triple_tap)
+    zoom_start <- max(1, min(K_log_gap, K_triple_tap) - 5)
+    zoom_end <- min(length(eig_vals), max_k + 15)
     plot_df_zoom <- data.frame(Rank = zoom_start:zoom_end, Eigenvalue = eig_vals[zoom_start:zoom_end])
     
     p_scree_zoom <- ggplot2::ggplot(plot_df_zoom, ggplot2::aes(x = Rank, y = Eigenvalue)) +
       ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
       ggplot2::geom_point(color = "dodgerblue", size = 2) +
-      ggplot2::geom_vline(xintercept = K_elbow, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
+      lines_geom +
       ggplot2::scale_y_continuous(trans = 'log10') +
       ggplot2::scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)))))) +
       ggplot2::labs(title = "Zoomed View", x = "Eigenvalue Index", y = "Log(Eigenvalue)") +
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
     
-    # MACRO VIEW (Dynamically extended to show top of noise bulk)
-    macro_base <- max(50, K_elbow * 10)
+    # MACRO VIEW (Dynamically extended)
+    macro_base <- max(50, max_k * 10)
     if (!is.na(top_of_bulk_idx)) {
-      macro_base <- max(macro_base, top_of_bulk_idx + 25) # 25 index visual cushion
+      macro_base <- max(macro_base, top_of_bulk_idx + 25)
     }
     macro_end <- min(length(eig_vals), macro_base)
     
@@ -416,7 +516,7 @@ calculate_entropic_scree <- function(data
     p_scree_macro <- ggplot2::ggplot(plot_df_macro, ggplot2::aes(x = Rank, y = Eigenvalue)) +
       ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
       ggplot2::geom_point(color = "dodgerblue", size = 2) +
-      ggplot2::geom_vline(xintercept = K_elbow, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
+      lines_geom +
       ggplot2::scale_y_continuous(trans = 'log10') +
       ggplot2::coord_cartesian(ylim = c(NA, macro_y_max)) + 
       ggplot2::labs(title = "Macro View", x = "Eigenvalue Index", y = "Log(Eigenvalue)") +
@@ -427,7 +527,7 @@ calculate_entropic_scree <- function(data
       combined_plot <- (p_scree_macro + p_scree_zoom) +
         patchwork::plot_annotation(
           title = "Entropic Scree Results",
-          subtitle = sprintf("Automated Elbow = %d", K_elbow),
+          subtitle = sub_title_text,
           theme = ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 16, hjust = 0.5),
                                  plot.subtitle = ggplot2::element_text(size = 14, hjust = 0.5))
         )
@@ -457,43 +557,71 @@ calculate_entropic_scree <- function(data
   cat("=================================================================\n\n")
   
   cat("=================================================================\n")
-  cat(" AUTOMATED ELBOW DETECTION (HEURISTIC)\n")
+  cat(" AUTOMATED ELBOW DETECTION (DUAL-DIAGNOSTIC ENSEMBLE)\n")
   cat("=================================================================\n")
-  cat(sprintf(" -> %-43s : %d\n", "Automated Extracted Elbow Rank (K_elbow)", K_elbow))
-  cat(sprintf(" -> %-43s : %s\n", "Extraction Method Tripped", elbow_method))
-  if (!is.na(elbow_ratio)) {
-    cat(sprintf(" -> %-43s : %.2fx (%.1f%% Drop)\n", "Elbow Magnitude (Topological Variance Drop)", elbow_ratio, elbow_pct_drop))
-  }
-  if (!is.na(macro_gap_ratio)) {
-    cat("-----------------------------------------------------------------\n")
-    cat(" [Diagnostic: Macro Gap (Noise Cliff)]\n")
-    cat(sprintf(" -> %-43s : %d\n", "Identified Top of Noise Bulk (Index)", top_of_bulk_idx)) 
+  cat(" [Diagnostic: Macro Gap (Noise Cliff)]\n")
+  if (!is.na(top_of_bulk_idx)) {
+    cat(sprintf(" -> %-43s : Index %d\n", "Identified Top of Noise Bulk", top_of_bulk_idx)) 
     cat(sprintf(" -> %-43s : %.6f\n", "Macro Gap Baseline (Max Noise Gap)", macro_max_noise_gap))
     cat(sprintf(" -> %-43s : %.2fx Baseline\n", "Actual Macro Gap Magnitude", macro_gap_ratio))
+  } else {
+    cat(sprintf(" -> %-43s : %s\n", "Identified Top of Noise Bulk", "Failed (Defaulted to Kaiser)"))
+  }
+  cat("-----------------------------------------------------------------\n")
+  cat(" [Engine A: Log-Gap]\n")
+  cat(sprintf(" -> %-43s : %d\n", "Log-Gap Extracted Rank (K)", K_log_gap))
+  if (!is.na(log_gap_ratio)) {
+    cat(sprintf(" -> %-43s : %.2fx (%.1f%% Drop)\n", "Log-Gap Magnitude", log_gap_ratio, log_gap_pct_drop))
+  }
+  cat("-----------------------------------------------------------------\n")
+  cat(" [Engine B: Triple-Tap (10-Point Quadratic)]\n")
+  cat(sprintf(" -> %-43s : %d\n", "Triple-Tap Extracted Rank (K)", K_triple_tap))
+  cat(sprintf(" -> %-43s : %s\n", "Macro-Stitch Applied", ifelse(stitch_applied, "Yes (+0.5x Macro Gap to Bulk)", "No")))
+  if (!is.na(triple_tap_expected_val)) {
+    cat(sprintf(" -> %-43s : %.5f\n", "Expected Local Eigenvalue", triple_tap_expected_val))
+    cat(sprintf(" -> %-43s : %.5f\n", "Actual Local Eigenvalue", triple_tap_actual_val))
+  }
+  cat(sprintf(" -> %-43s : %.2f (1-\u03B1 = %.6f)\n", "Required Local t-Multiplier", triple_tap_multiplier, prob_target))
+  if (!is.na(triple_tap_actual_sigma)) {
+    cat(sprintf(" -> %-43s : %.2f Sigma Breakout\n", "Actual vs Expected", triple_tap_actual_sigma))
   }
   cat("=================================================================\n")
   
   # ============================================================================
-  # WAVE 2: INTERACTIVE USER OVERRIDE
+  # WAVE 2: INTERACTIVE USER OVERRIDE (OR DEFAULTING)
   # ============================================================================
-  K_final <- K_elbow
+  K_final <- K_log_gap # Baseline default for downstream mechanics
   
   if (interactive_mode) {
-    cat("\n[WARNING]: The automated elbow extractor relies on statistical heuristics and\n")
+    cat("\n[WARNING]: The automated extractors rely on statistical heuristics and\n")
     cat("may not perfectly align with the true structural elbow of your specific dataset.\n")
     cat("Please visually examine the generated scree plot.\n\n")
     
     first_prompt <- TRUE
     while (TRUE) {
       if (first_prompt) {
-        prompt_msg <- sprintf("Do you want to keep the Extracted Elbow Rank of %d? (Type 'Y' to keep, or enter custom rank): ", K_final)
+        if (K_log_gap == K_triple_tap) {
+          prompt_msg <- sprintf("Dual engines converged on Rank %d. Type 'Y' to keep, or enter custom rank: ", K_log_gap)
+        } else {
+          prompt_msg <- sprintf("Engines diverged (Log-Gap = %d, Triple-Tap = %d).\nType 'L' for Log-Gap, 'T' for Triple-Tap, or enter custom rank: ", K_log_gap, K_triple_tap)
+        }
       } else {
         prompt_msg <- sprintf("Do you want to keep the updated rank of %d? (Type 'Y' to finalize, or enter a new custom rank): ", K_final)
       }
       
       ans <- trimws(readline(prompt = prompt_msg))
-      if (tolower(ans) %in% c("y", "yes")) {
+      ans_lower <- tolower(ans)
+      
+      if (ans_lower %in% c("y", "yes") && ((first_prompt && K_log_gap == K_triple_tap) || !first_prompt)) {
         cat("\n[+] Finalizing rank selection.\n")
+        break
+      } else if (ans_lower == "l" && first_prompt && K_log_gap != K_triple_tap) {
+        K_final <- K_log_gap
+        cat(sprintf("\n[+] Rank finalized to Log-Gap Engine (%d).\n", K_final))
+        break
+      } else if (ans_lower == "t" && first_prompt && K_log_gap != K_triple_tap) {
+        K_final <- K_triple_tap
+        cat(sprintf("\n[+] Rank finalized to Triple-Tap Engine (%d).\n", K_final))
         break
       } else {
         parsed_k <- suppressWarnings(as.integer(ans))
@@ -505,69 +633,62 @@ calculate_entropic_scree <- function(data
           # INTERACTIVE GRAPH PREVIEW & METRICS
           # ====================================================================
           if (requireNamespace("ggplot2", quietly = TRUE)) {
-            # 1. ZOOMED VIEW
-            zoom_start_upd <- max(1, min(K_elbow, K_final) - 5)
-            zoom_end_upd <- min(length(eig_vals), max(K_elbow, K_final) + 15)
             
-            plot_df_zoom_upd <- data.frame(
-              Rank = zoom_start_upd:zoom_end_upd, 
-              Eigenvalue = eig_vals[zoom_start_upd:zoom_end_upd]
-            )
+            # Setup previous engine lines (faded) and new user line (solid green)
+            if (K_log_gap == K_triple_tap) {
+              prev_lines <- ggplot2::geom_vline(xintercept = K_log_gap, color = "gray60", linetype = "dashed", linewidth = 1)
+            } else {
+              prev_lines <- list(
+                ggplot2::geom_vline(xintercept = K_log_gap, color = "gray60", linetype = "dashed", linewidth = 1),
+                ggplot2::geom_vline(xintercept = K_triple_tap, color = "gray70", linetype = "twodash", linewidth = 1)
+              )
+            }
+            final_line <- ggplot2::geom_vline(xintercept = K_final, color = "forestgreen", linetype = "solid", linewidth = 1.2)
+            
+            # 1. ZOOMED VIEW
+            zoom_start_upd <- max(1, min(K_log_gap, K_triple_tap, K_final) - 5)
+            zoom_end_upd <- min(length(eig_vals), max(K_log_gap, K_triple_tap, K_final) + 15)
+            
+            plot_df_zoom_upd <- data.frame(Rank = zoom_start_upd:zoom_end_upd, Eigenvalue = eig_vals[zoom_start_upd:zoom_end_upd])
             
             p_scree_zoom_upd <- ggplot2::ggplot(plot_df_zoom_upd, ggplot2::aes(x = Rank, y = Eigenvalue)) +
               ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
               ggplot2::geom_point(color = "dodgerblue", size = 2) +
-              ggplot2::geom_vline(xintercept = K_elbow, color = "gray60", linetype = "dashed", linewidth = 1) +
-              ggplot2::geom_vline(xintercept = K_final, color = "forestgreen", linetype = "solid", linewidth = 1.2) +
+              prev_lines + final_line +
               ggplot2::scale_y_continuous(trans = 'log10') +
               ggplot2::scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)))))) +
-              ggplot2::labs(
-                title = "Zoomed View",
-                x = "Eigenvalue Index (m)", 
-                y = "Log(Eigenvalue)"
-              ) +
+              ggplot2::labs(title = "Zoomed View", x = "Eigenvalue Index (m)", y = "Log(Eigenvalue)") +
               ggplot2::theme_minimal(base_size = 14) +
               ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
             
-            # 2. MACRO VIEW (Dynamically extended)
-            macro_base_upd <- max(50, K_final * 10, K_elbow * 10)
+            # 2. MACRO VIEW
+            macro_base_upd <- max(50, K_final * 10, K_log_gap * 10)
             if (!is.na(top_of_bulk_idx)) {
-              macro_base_upd <- max(macro_base_upd, top_of_bulk_idx + 25) # 25 index visual cushion
+              macro_base_upd <- max(macro_base_upd, top_of_bulk_idx + 25) 
             }
             macro_end_upd <- min(length(eig_vals), macro_base_upd)
             
-            plot_df_macro_upd <- data.frame(
-              Rank = 1:macro_end_upd,
-              Eigenvalue = eig_vals[1:macro_end_upd]
-            )
-            
+            plot_df_macro_upd <- data.frame(Rank = 1:macro_end_upd, Eigenvalue = eig_vals[1:macro_end_upd])
             macro_y_max <- if(length(eig_vals) >= 2) eig_vals[2] * 1.1 else max(eig_vals)
             
             p_scree_macro_upd <- ggplot2::ggplot(plot_df_macro_upd, ggplot2::aes(x = Rank, y = Eigenvalue)) +
               ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
               ggplot2::geom_point(color = "dodgerblue", size = 2) +
-              ggplot2::geom_vline(xintercept = K_elbow, color = "gray60", linetype = "dashed", linewidth = 1) +
-              ggplot2::geom_vline(xintercept = K_final, color = "forestgreen", linetype = "solid", linewidth = 1.2) +
+              prev_lines + final_line +
               ggplot2::scale_y_continuous(trans = 'log10') +
               ggplot2::coord_cartesian(ylim = c(NA, macro_y_max)) + 
-              ggplot2::labs(
-                title = "Macro View",
-                x = "Eigenvalue Index (m)", 
-                y = "Log(Eigenvalue)"
-              ) +
+              ggplot2::labs(title = "Macro View", x = "Eigenvalue Index (m)", y = "Log(Eigenvalue)") +
               ggplot2::theme_minimal(base_size = 14) +
               ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
             
-            # Render Side-by-Side with global titles
+            # Render Side-by-Side
             if (requireNamespace("patchwork", quietly = TRUE)) {
               combined_plot_upd <- (p_scree_macro_upd + p_scree_zoom_upd) +
                 patchwork::plot_annotation(
                   title = "Entropic Scree Results",
-                  subtitle = sprintf("User Confirmed Elbow = %d (Auto: %d)", K_final, K_elbow),
-                  theme = ggplot2::theme(
-                    plot.title = ggplot2::element_text(face = "bold", size = 16, hjust = 0.5),
-                    plot.subtitle = ggplot2::element_text(size = 14, hjust = 0.5)
-                  )
+                  subtitle = sprintf("User Confirmed Elbow = %d", K_final),
+                  theme = ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 16, hjust = 0.5),
+                                         plot.subtitle = ggplot2::element_text(size = 14, hjust = 0.5))
                 )
               print(combined_plot_upd)
             } else {
@@ -601,7 +722,7 @@ calculate_entropic_scree <- function(data
           
           first_prompt <- FALSE
         } else {
-          cat("[-] Invalid input. Please enter 'Y' to finalize, or a valid positive integer.\n\n")
+          cat("[-] Invalid input. Please enter a valid menu option or positive integer.\n\n")
         }
       }
     }
@@ -685,8 +806,9 @@ calculate_entropic_scree <- function(data
     retained_features = valid_vars,
     bin_distributions = bin_sample_sizes,
     R_eff = R_eff,
-    K_auto_extracted = K_elbow,
-    extraction_method = elbow_method,
+    K_log_gap = K_log_gap,
+    K_triple_tap = K_triple_tap,
+    triple_tap_multiplier = triple_tap_multiplier,
     K_final = K_final,
     top_of_bulk = top_bulk_safe,
     total_signal_volume = total_signal_volume,
@@ -704,7 +826,7 @@ calculate_entropic_scree <- function(data
 
 ################################################################################
 ################################################################################
-# SIMULATION TO TEST ENTROPIC SCREE FUNCTION 
+# SIMULATION TO TEST ENTROPIC SCREE FUNCTION
 ################################################################################
 ################################################################################
 
@@ -719,7 +841,7 @@ generate_random_corr_matrix <- function(k) {
 }
 
 # STEP 2A: Generate the pure, uncorrupted Ground Truth Proxies
-generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interaction_order = 3, max_polynomial_order = 3, int_scaling = 1, continuous_ratio = 1.0) {
+generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interaction_order = 3, max_polynomial_order = 3, int_scaling = 1, continuous_ratio = 1.0, sparsity_ratio = 0.10, structural_snr = 5.0) {
   k <- ncol(s1_continuous)
   n <- nrow(s1_continuous)
   
@@ -762,11 +884,8 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
   interaction_orders <- stringr::str_count(term_names, ":") + 1
   n_terms <- ncol(design_mat)
   
-  # --- THE DIALS ---
-  # To use a factorial penalty, swap the comments on the next two lines. This makes the underlying generation more linear:
-  # term_sds <- sqrt(1 / factorial(interaction_orders))
-  term_sds <- rep(1.0, n_terms) 
-  # int_scaling is passed as a function argument
+  # --- KNOBS ---
+  term_sds <- rep(1.0, n_terms)
   # -----------------
   
   # 2. Build the Weight Matrix
@@ -782,37 +901,90 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
     # Interactions and Polynomials
     if (n_int > 0)  coeffs[is_int, j]  <- rnorm(n_int, mean = 0, sd = term_sds[is_int] * int_scaling)
   }
-  mask <- matrix(rbinom(n_terms * m_proxies, 1, 0.05), nrow = n_terms, ncol = m_proxies)
+  
+  # --- DYNAMIC SPARSITY IMPLEMENTATION ---
+  # Enforce a strict minimum of 3 active terms per proxy, scaling at X% of total n_terms
+  num_active <- max(3, round(n_terms * sparsity_ratio))
+  num_active <- min(n_terms, num_active) # Safety cap in case n_terms < 3
+  
+  cat(sprintf("      -> Enforcing structural sparsity: %d active terms per proxy (%.1f%% of %d available terms)...\n", num_active, (num_active/n_terms)*100, n_terms))
+  
+  mask <- matrix(0, nrow = n_terms, ncol = m_proxies)
+  for(j in 1:m_proxies) {
+    active_indices <- sample.int(n_terms, size = num_active)
+    mask[active_indices, j] <- 1
+  }
   coeffs <- coeffs * mask
+  # ---------------------------------------
   
-  # 3. Generate the Raw Structural Signal
-  raw_signal <- design_mat %*% coeffs
+  # 3. Generate the Deterministic Core
+  deterministic_core <- design_mat %*% coeffs
   
-  # 4A. The True Continuous Signal
+  # 3.5 SET THRESHOLDS & INJECT STRUCTURAL UNCERTAINTY (ROUND 1 NOISE)
+  cat(sprintf("      -> Setting Base Rates and Injecting Structural Uncertainty (Round 1 Noise, SNR = %.2f)...\n", structural_snr))
+  true_manifestation <- matrix(0, nrow = n, ncol = m_proxies)
+  
+  # Pre-calculate standard deviations for exact noise scaling
+  # Signal Var = 1.0, Noise Var = 1/SNR, Total Var = 1.0 + (1/SNR)
+  total_sd <- sqrt(1 + (1 / structural_snr))
+  
+  for (j in 1:m_proxies) {
+    # Step A: Standardize the deterministic core (Forces pure signal variance to exactly 1.0)
+    core_vec <- deterministic_core[, j]
+    if (sd(core_vec) > 1e-9) {
+      core_vec <- as.vector(scale(core_vec))
+    } else {
+      core_vec <- rep(0, n)
+    }
+    
+    # Step B: Set the Threshold PRIOR to Structural Noise (For Binary Variables Only)
+    is_binary_var <- (j > m_cont)
+    if (is_binary_var) {
+      # 1. Target a prevalence between 50% and 95%
+      target_prev <- runif(1, min = 0.50, max = 0.95)
+      
+      # 2. Calculate the exact shift needed to hit this probability 
+      #    considering the noise that is about to be added.
+      shift <- sqrt(2) * total_sd * qnorm(target_prev)
+      
+      # 3. Embed the threshold permanently into the structural manifold
+      core_vec <- core_vec + shift
+    }
+    
+    # Step C: Inject Structural Uncertainty (Variance = 1 / SNR)
+    structural_noise <- rnorm(n, mean = 0, sd = sqrt(1 / structural_snr))
+    
+    # Step D: Finalize the True Probabilistic Manifestation
+    true_manifestation[, j] <- core_vec + structural_noise
+  }
+  
+  # 4A. The True Continuous Signal 
   cat(sprintf("      -> Generating %d True Continuous Proxies...\n", m_cont))
-  true_cont <- raw_signal[, 1:m_cont, drop = FALSE]
+  true_cont <- true_manifestation[, 1:m_cont, drop = FALSE]
   
-  # 4B. The True Binary Signal (SAFELY BYPASSED IF 0)
+  # 4B. The True Binary Signal
   if (m_bin > 0) {
     cat(sprintf("      -> Generating %d True Binary Proxies...\n", m_bin))
-    signal_bin <- raw_signal[, (m_cont + 1):m_proxies, drop = FALSE]
+    signal_bin <- true_manifestation[, (m_cont + 1):m_proxies, drop = FALSE]
     
     apply_copula_mapping <- function(scores) {
-      if (sd(scores) < 1e-9) return(rep(0.5, length(scores)))
-      z_scores <- as.vector(scale(scores))
-      probs <- pnorm(z_scores) 
-      if (runif(1) > 0.5) probs <- 1 - probs 
+      # Fallback for zero-variance
+      if (sd(scores) < 1e-9) return(rep(runif(1, min = 0.50, max = 0.95), length(scores)))
+      
+      # Because the threshold shift and structural noise are already permanently baked 
+      # into the scores, we NO LONGER scale() them here. We simply map them against 
+      # the theoretical baseline distribution N(0, total_sd) to get the final probability.
+      probs <- pnorm(scores, mean = 0, sd = total_sd)
+      
       return(probs)
     }
     
     prob_mat <- apply(signal_bin, 2, apply_copula_mapping)
     true_bin <- matrix(rbinom(length(prob_mat), 1, prob_mat), nrow = n, ncol = m_bin)
     
-    # Combine mixed types
     true_proxies <- cbind(true_cont, true_bin)
     is_continuous <- c(rep(TRUE, m_cont), rep(FALSE, m_bin))
   } else {
-    # Pure continuous universe
     true_proxies <- true_cont
     is_continuous <- rep(TRUE, m_cont)
   }
@@ -822,7 +994,6 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
   true_proxies <- true_proxies[, mix_idx, drop = FALSE]
   is_continuous <- is_continuous[mix_idx]
   
-  # Calculate K_rlzd before returning
   active_terms <- sum(rowSums(abs(coeffs)) > 0)
   
   return(list(
@@ -832,9 +1003,9 @@ generate_true_mixed_proxies <- function(s1_continuous, m_proxies, max_interactio
   ))
 }
 
-# STEP 2B: Apply independent Measurement Error to the True Data
+# STEP 2B: Apply independent Measurement Error to the True Data (ROUND 2 NOISE)
 apply_measurement_error <- function(true_universe, snr_continuous = 2.0, binary_error_rate = 0.15) {
-  cat(sprintf("      -> Applying Measurement Error (Continuous SNR = %.2f, Binary Bit-Flip Rate = %.3f)...\n", snr_continuous, binary_error_rate))
+  cat(sprintf("      -> Applying Measurement Error (Round 2 Noise: Continuous SNR = %.2f, Binary Bit-Flip Rate = %.3f)...\n", snr_continuous, binary_error_rate))
   
   obs_mat <- true_universe$data_matrix
   is_cont <- true_universe$is_continuous
@@ -843,21 +1014,20 @@ apply_measurement_error <- function(true_universe, snr_continuous = 2.0, binary_
   
   for (j in 1:m) {
     if (is_cont[j]) {
-      # Add Gaussian Noise mapped to target SNR
+      # Add Gaussian Measurement Error
       true_var <- var(obs_mat[, j])
-      if (true_var < 1e-9) true_var <- 1e-9 
+      if (true_var < 1e-9) true_var <- 1e-9
       
-      noise <- rnorm(n, mean = 0, sd = 1)
-      noise_var <- var(noise)
+      measurement_error <- rnorm(n, mean = 0, sd = 1)
+      error_var <- var(measurement_error)
       
-      scaling_factor <- sqrt(true_var / (noise_var * snr_continuous))
-      obs_mat[, j] <- obs_mat[, j] + (noise * scaling_factor)
+      scaling_factor <- sqrt(true_var / (error_var * snr_continuous))
+      obs_mat[, j] <- obs_mat[, j] + (measurement_error * scaling_factor)
       
     } else {
-      # Add Bit-Flip Measurement Error (Misreading the true state)
-      # Flips 1s to 0s, and 0s to 1s with probability = binary_error_rate
+      # Add Bit-Flip Measurement Error
       flip_mask <- rbinom(n, 1, binary_error_rate)
-      obs_mat[, j] <- abs(obs_mat[, j] - flip_mask) # Equivalent to XOR
+      obs_mat[, j] <- abs(obs_mat[, j] - flip_mask)
     }
   }
   
@@ -871,19 +1041,21 @@ apply_measurement_error <- function(true_universe, snr_continuous = 2.0, binary_
 # ==============================================================================
 set.seed(19862026)
 
-K_TRUE <- 10
-N_ROWS <- 5000
-M_PROXIES <- 10000
+# MACRO-LEVEL GENERATED DATA KNOBS
+K_TRUE <- 10 # Latent Generateive Rank (r)
+N_ROWS <- 5000 # Sample Size (N)
+M_PROXIES <- 10000 # Dimensionality (m)
 CONTINUOUS_RATIO <- .80  # SET TO 1.0 FOR PURE CONTINUOUS, 0.0 FOR PURE BINARY, OR ANYWHERE IN BETWEEN
 
-# --- DIALS ---
-MAX_INTERACTION_ORDER <- round(K_TRUE/2)    # Controls cross-interactions (e.g., X1:X2). Maxes out at K_TRUE.
-MAX_POLYNOMIAL_ORDER <- 4    # Controls pure powers (e.g., X1^2, X1^3). Uncapped.
-# ----------------------
+# DESIGN MATRIX KNOBS
+MAX_INTERACTION_ORDER <- round(K_TRUE/2)    # Controls cross-interactions
+MAX_POLYNOMIAL_ORDER <- 4    # Controls pure powers
+SPARSITY_RATIO <- 0.10       # Target X% of total design matrix terms active per proxy (Minimum 3)
 
-# ERROR KNOBS
-CONTINUOUS_SNR <- 2  # Lower is dirtier (e.g., 0.5 is garbage, 10 is clean)
-BINARY_ERROR_RATE <- 0.15   # 0.0 is perfect sensor, 0.50 is pure static coin-flip
+# IDIOSYNCRATIC NOISE KNOBS
+STRUCTURAL_SNR <- 10.0       # Structural Uncertainty: Determines how perfectly the proxy reflects the structural manifold (Idiosyncratic variance)
+CONTINUOUS_SNR <- 2.0        # Pure continuous measurement error (Sensor degradation)
+BINARY_ERROR_RATE <- 0.15    # Pure binary measurement error (Bit-flip)
 
 cat(sprintf("Generating Mixed Synthetic Universe: %s rows, %d Proxies, %d Latent Drivers...\n", format(N_ROWS, big.mark=","), M_PROXIES, K_TRUE))
 
@@ -897,12 +1069,12 @@ Z_latent_continuous <- MASS::mvrnorm(n = N_ROWS
 s1_df <- as.data.frame(Z_latent_continuous)
 colnames(s1_df) <- paste0("X", 1:K_TRUE)
 
-# ENGINE 1: Cross-interactions (Capped at K_TRUE)
+# ENGINE 1: Cross-interactions
 eff_cross_order <- min(K_TRUE, MAX_INTERACTION_ORDER)
 formula_str <- as.formula(paste0("~ .^", eff_cross_order))
 design_mat <- model.matrix(formula_str, data = s1_df)[, -1, drop = FALSE]
 
-# ENGINE 2: Pure Polynomial Powers (Uncapped)
+# ENGINE 2: Pure Polynomial Powers
 if (MAX_POLYNOMIAL_ORDER > 1) {
   power_list <- list()
   for (i in 1:K_TRUE) {
@@ -924,9 +1096,9 @@ design_mat <- scale(design_mat)
 term_names <- colnames(design_mat)
 interaction_orders <- stringr::str_count(term_names, ":") + 1
 
-# --- THE DIALS ---
-term_sds <- rep(1.0, length(term_names)) # Use sqrt(1 / factorial(interaction_orders)) instead to shrink sds for interactions to move the systemt towards linearity.
-int_scaling <- 1.0 
+# --- KNOBS ---
+term_sds <- rep(1.0, length(term_names))
+int_scaling <- 1.0
 # -----------------
 
 term_weights <- ifelse(interaction_orders == 1, term_sds, term_sds * int_scaling)
@@ -937,24 +1109,25 @@ expanded_eigen <- pmax(eigen(expanded_cov, symmetric = TRUE)$values, 0)
 p_expanded <- expanded_eigen[expanded_eigen > 1e-9] / sum(expanded_eigen[expanded_eigen > 1e-9])
 true_continuous_ceiling <- exp(-sum(p_expanded * log(p_expanded)))
 
-cat(sprintf("\n[***] R_conf (Effective Latent Configurational Rank): %.2f\n\n", true_continuous_ceiling))
-
 # 3. Generate the Data (Uncoupled Truth and Error)
 true_universe <- generate_true_mixed_proxies(
-  Z_latent_continuous, 
-  M_PROXIES, 
-  max_interaction_order = MAX_INTERACTION_ORDER, 
+  Z_latent_continuous,
+  M_PROXIES,
+  max_interaction_order = MAX_INTERACTION_ORDER,
   max_polynomial_order = MAX_POLYNOMIAL_ORDER,
   int_scaling = int_scaling,
-  continuous_ratio = CONTINUOUS_RATIO
+  continuous_ratio = CONTINUOUS_RATIO,
+  sparsity_ratio = SPARSITY_RATIO,
+  structural_snr = STRUCTURAL_SNR
 )
-
-# Print the K_rlzd extracted safely from the function
-cat(sprintf("[***] K_rlzd (Realized Latent Configurational Rank): %d\n", true_universe$active_terms))
 
 observed_data <- apply_measurement_error(true_universe, snr_continuous = CONTINUOUS_SNR, binary_error_rate = BINARY_ERROR_RATE)
 
 cat("\nDataset is ready. Starting pipeline...\n\n")
+
+# Print Latent Configurational Ranks
+cat(sprintf("\n[***] R_conf (Effective Latent Configurational Rank): %.2f\n\n", true_continuous_ceiling))
+cat(sprintf("[***] K_rlzd (Realized Latent Configurational Rank): %d\n", true_universe$active_terms))
 
 # ==============================================================================
 # 4. RUN ENTROPIC SCREE
