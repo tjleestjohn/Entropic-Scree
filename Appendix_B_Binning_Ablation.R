@@ -65,12 +65,23 @@ capture.output({
 eig_extreme <- res_extreme$eigenvalues
 
 # ==============================================================================
-# PLOTTING ENGINE
+# 3. OUTPUT VALUES FOR TABLE 2
+# ==============================================================================
+cat("\n=================================================================\n")
+cat(" TABLE 2 UPDATE VALUES (R_eff)\n")
+cat("=================================================================\n")
+cat(sprintf(" -> %d Bins (Conservative) : %.3f\n", bin_default, results$R_eff))
+cat(sprintf(" -> %d Bins (Dense)        : %.3f\n", bin_dense, res_dense$R_eff))
+cat(sprintf(" -> %d Bins (Extreme)      : %.3f\n", bin_extreme, res_extreme$R_eff))
+cat("=================================================================\n")
+
+# ==============================================================================
+# 4. PLOTTING ENGINE
 # ==============================================================================
 
 # Helper function to guarantee perfectly uniform styling across all 3 panels
 create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
-  # Zoom window: Ranks 1 to 75 to isolate the boundary and the artifact
+  # Zoom window: Ranks 1 to 75 to isolate the boundary
   df <- data.frame(Rank = 1:75, Eigenvalue = eig_vec[1:75])
   
   # Calculate 1.025x of the second eigenvalue to use as the upper limit
@@ -81,8 +92,6 @@ create_panel <- function(eig_vec, title_text, hide_y_label = FALSE) {
     geom_point(color = "dodgerblue", size = 1.5) +
     # True generative boundary (Dynamically points to K_TRUE from global environment)
     geom_vline(xintercept = K_TRUE, color = "#D55E00", linetype = "dashed", linewidth = 1.2) +
-    # Visual guide for the noise artifact at 55 (Note: this is tied specifically to the N=5000, M=10000 setup)
-    geom_vline(xintercept = 55, color = "gray60", linetype = "dotted", linewidth = 1) +
     scale_y_continuous(trans = 'log10') +
     # Use coord_cartesian to visually zoom without discarding the first data point
     coord_cartesian(ylim = c(NA, y_upper_limit)) +
@@ -111,7 +120,7 @@ final_plot <- p1 + p2 + p3 +
   plot_layout(ncol = 3) + 
   plot_annotation(
     title = "Eigenspectra Across Discretization Regimes",
-    subtitle = sprintf("Generative signal (K=%d) remains invariant while internal noise artifacts dissolve", K_TRUE),
+    subtitle = sprintf("Generative signal (K=%d) remains invariant despite inflation of the continuous noise tail", K_TRUE),
     theme = theme(
       plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
       plot.subtitle = element_text(size = 14, hjust = 0.5, color = "gray30", margin = margin(b = 15))
