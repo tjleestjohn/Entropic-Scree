@@ -72,7 +72,7 @@ The Entropic Scree does not claim to possess the exact analytical Random Matrix 
 
 However, from a pragmatic engineering perspective: **applying an approximate empirical heuristic to a structurally valid, non-linear metric space represents a strict, objective upgrade over applying any "standard" threshold (like the Kaiser criterion) to a fundamentally distorted linear space.** 
 
-Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers—which can produce large internal informational variance drops independent of the noise floor—the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot to formally confirm (or manually override) the detected elbow and verify the true macroscopic generative boundary.
+Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers — which can produce large internal informational variance drops independent of the noise floor — the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot to formally confirm (or manually override) the detected elbow and verify the true macroscopic generative boundary.
 
 ---
 
