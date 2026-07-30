@@ -16,14 +16,16 @@
 </p>
 
 > **TL;DR**
->
+> 
+> Offered as an upgrade over standard PCA and other methods that rely on strict assumptions about the nature of the underlying generative process, the Entropic Scree allows practitioners to estimate true generative rank by evaluating a valid non-linear, information-theoretic space.
+> 
 > If you have high-dimensional, mixed-type, noisy tabular data, standard Principal Component Analysis (PCA) will systematically misrepresent its true dimensionality. Standard topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration. 
 >
 > The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back to their generative roots. 
 >
-> While all statistical estimators are universally bound by the resolution limits of finite sample sizes, this framework refuses to hallucinate spurious dimensions when those limits are reached. 
->
-> *“Ultimately, what it extracts is not an unobservable physical parts list, but a true operational map of what your environment possesses the statistical power to resolve.”* 
+> While all statistical estimators are universally bound by the resolution limits of finite sample sizes and predictor breadth, this framework ensures that complex non-linearities are permanently collapsed to their root rather than fragmented into spurious dimensions.
+> 
+> “Ultimately, what it extracts is not an unobservable physical parts list, but an operational map of what your environment possesses the statistical and structural power to resolve.”
 
 ---
 
@@ -65,7 +67,12 @@ However, to provide an optional baseline convenience utility for rapid explorato
 
 * **Engine B (Triple-Tap):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 10-point quadratic regression to identify the exact index where the signal violently breaks out of the expected noise trajectory.
 
-**⚠️ Heuristic Warning ⚠️** Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers — which can produce large internal informational variance drops independent of the noise floor — and because idiosyncratic noise distributions themselves contain unpredictable localized structures, the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot and formally confirm (or manually override) the detected elbow to verify the true macroscopic generative boundary.
+**⚠️ Heuristic Warning & The "Upgrade" Proposition ⚠️** 
+The Entropic Scree does not claim to possess the exact analytical Random Matrix Theory (RMT) bounds (such as the Marchenko-Pastur law) that strictly govern linear sample covariance matrices. Consequently, automated extraction in this space inherently relies on empirical heuristics. 
+
+However, from a pragmatic engineering perspective: **applying an approximate empirical heuristic to a structurally valid, non-linear metric space represents a strict, objective upgrade over applying any "standard" threshold (like the Kaiser criterion) to a fundamentally distorted linear space.** 
+
+Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers—which can produce large internal informational variance drops independent of the noise floor—the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot to formally confirm (or manually override) the detected elbow and verify the true macroscopic generative boundary.
 
 ---
 
