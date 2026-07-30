@@ -1,12 +1,12 @@
 # The Entropic Scree:<br>An Informational-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems
 
+###### Initial Methods & Function Release: July 2026
+
 *[Terrence J. Lee-St. John, PhD](mailto:terry@enli.com.au)*
 
 *[Enli: Predictive systems that remain stable under change](https://www.enli.com.au)*
 
 **Links**
-
-###### Initial Methods & Function Release: July 2026
 
 [![Read arXiv Preprint (Coming Soon)](https://img.shields.io/badge/arXiv_Preprint-Coming_Soon-lightgrey?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
