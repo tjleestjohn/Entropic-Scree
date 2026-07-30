@@ -16,15 +16,15 @@
 </p>
 
 > **TL;DR**
-> 
-> Offered as an upgrade over standard PCA and other methods that rely on strict assumptions about the nature of the underlying generative process, the Entropic Scree allows practitioners to estimate true generative rank by evaluating a valid non-linear, information-theoretic space.
-> 
-> If you have high-dimensional, mixed-type, noisy tabular data, standard PCA will systematically misrepresent its true dimensionality. Standard topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration. 
 >
-> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back to their generative roots. 
+> Offered as an upgrade over standard PCA and other methods that rely on strict assumptions about the nature of the underlying generative process, the Entropic Scree allows practitioners to estimate true generative rank by evaluating a valid non-linear, information-theoretic space.
+>
+> If you have high-dimensional, mixed-type, noisy tabular data, standard PCA will systematically misrepresent its true dimensionality, while other topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration.
+>
+> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back to their generative roots.
 >
 > While all statistical estimators are universally bound by the resolution limits of finite sample sizes and predictor breadth, this framework ensures that complex non-linearities are permanently collapsed to their root rather than fragmented into spurious dimensions.
-> 
+>
 > “Ultimately, what it extracts is not an unobservable physical parts list, but an operational map of what your environment possesses the statistical and structural power to resolve.”
 
 ---
