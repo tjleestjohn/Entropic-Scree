@@ -328,6 +328,7 @@ calculate_entropic_scree <- function(data
   K_log_gap <- NA_integer_
   log_gap_pct_drop <- NA_real_
   log_gap_ratio <- NA_real_
+  log_gap_fallback <- FALSE
   n_valid_search <- length(valid_search_space)
   
   if (n_valid_search >= 3) {
@@ -339,6 +340,7 @@ calculate_entropic_scree <- function(data
       second_largest_gap_idx <- ordered_gaps[2]
       if (second_largest_gap_idx >= top_of_bulk_idx) {
         K_log_gap <- max(1, top_of_bulk_idx - 1)
+        log_gap_fallback <- TRUE
       } else {
         K_log_gap <- second_largest_gap_idx
       }
@@ -350,6 +352,7 @@ calculate_entropic_scree <- function(data
         K_log_gap <- which.max(secondary_gaps) + 1
       } else {
         K_log_gap <- 1
+        log_gap_fallback <- TRUE
       }
     }
   } else {
@@ -373,8 +376,10 @@ calculate_entropic_scree <- function(data
   triple_tap_actual_sigma <- NA_real_
   triple_tap_expected_val <- NA_real_
   triple_tap_actual_val <- NA_real_
+  triple_tap_local_sd <- NA_real_
   prob_target <- NA_real_
   stitch_applied <- FALSE
+  triple_tap_fallback <- FALSE
   
   if (search_start_idx >= 3) {
     # 1. Apply the Topological Stitch directly to the eigenvalues
@@ -430,6 +435,7 @@ calculate_entropic_scree <- function(data
           triple_tap_expected_val <- expected_val
           triple_tap_actual_val <- target_val
           triple_tap_actual_sigma <- (target_val - expected_val) / local_sd
+          triple_tap_local_sd <- local_sd
           break
         }
       } else if (length(ref_vals) >= 2) {
@@ -447,15 +453,17 @@ calculate_entropic_scree <- function(data
           triple_tap_expected_val <- local_mean
           triple_tap_actual_val <- target_val
           triple_tap_actual_sigma <- (target_val - local_mean) / local_sd
+          triple_tap_local_sd <- local_sd
           break
         }
       }
     }
   }
   
-  # Fallback if Triple-Tap never triggers
+  # Fallback if Triple-Tap never triggers (or if search_start_idx < 3)
   if (is.na(K_triple_tap)) {
     K_triple_tap <- K_log_gap
+    triple_tap_fallback <- TRUE
   }
   
   # Safely capture the multiplier for the printout if it never broke but we had space
@@ -569,19 +577,22 @@ calculate_entropic_scree <- function(data
   }
   cat("-----------------------------------------------------------------\n")
   cat(" [Engine A: Log-Gap]\n")
-  cat(sprintf(" -> %-43s : %d\n", "Log-Gap Extracted Rank (K)", K_log_gap))
+  cat(sprintf(" -> %-43s : %d%s\n", "Log-Gap Extracted Rank (K)", K_log_gap, ifelse(log_gap_fallback, " [Forced by Macro Boundary]", "")))
   if (!is.na(log_gap_ratio)) {
     cat(sprintf(" -> %-43s : %.2fx (%.1f%% Drop)\n", "Log-Gap Magnitude", log_gap_ratio, log_gap_pct_drop))
   }
   cat("-----------------------------------------------------------------\n")
   cat(" [Engine B: Triple-Tap (10-Point Quadratic)]\n")
-  cat(sprintf(" -> %-43s : %d\n", "Triple-Tap Extracted Rank (K)", K_triple_tap))
+  cat(sprintf(" -> %-43s : %d%s\n", "Triple-Tap Extracted Rank (K)", K_triple_tap, ifelse(triple_tap_fallback, " [Failed to trigger; defaulted to Log-Gap]", "")))
   cat(sprintf(" -> %-43s : %s\n", "Macro-Stitch Applied", ifelse(stitch_applied, "Yes (+0.5x Macro Gap to Bulk)", "No")))
   if (!is.na(triple_tap_expected_val)) {
     cat(sprintf(" -> %-43s : %.5f\n", "Expected Local Eigenvalue", triple_tap_expected_val))
     cat(sprintf(" -> %-43s : %.5f\n", "Actual Local Eigenvalue", triple_tap_actual_val))
+    cat(sprintf(" -> %-43s : %.6f\n", "Calculated Local Baseline Sigma (SD)", triple_tap_local_sd))
   }
-  cat(sprintf(" -> %-43s : %.2f (1-\u03B1 = %.6f)\n", "Required Local t-Multiplier", triple_tap_multiplier, prob_target))
+  if (!is.na(triple_tap_multiplier)) {
+    cat(sprintf(" -> %-43s : %.2f (1-\u03B1 = %.6f)\n", "Required Local t-Multiplier", triple_tap_multiplier, prob_target))
+  }
   if (!is.na(triple_tap_actual_sigma)) {
     cat(sprintf(" -> %-43s : %.2f Sigma Breakout\n", "Actual vs Expected", triple_tap_actual_sigma))
   }
