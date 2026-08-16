@@ -67,7 +67,7 @@ However, to provide an optional baseline convenience utility for rapid explorato
 
 * **Engine B (Triple-Tap) maps the Extended Signal Tail ($K_{extended}$):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 20-point linear regression to identify the exact index where the residual combinatorial signal significantly breaks out of the expected Idiosyncratic Informational Variance trajectory.
 
-**⚠️ Heuristic Warning & The "Upgrade" Proposition ⚠️**
+⚠️ Heuristic Warning ⚠️
 
 The Entropic Scree does not claim to possess the exact analytical Random Matrix Theory (RMT) bounds (such as the Marchenko-Pastur law) that strictly govern linear sample covariance matrices. Consequently, automated extraction in this space inherently relies on empirical heuristics.
 
