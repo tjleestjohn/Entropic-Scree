@@ -1,5 +1,5 @@
 # ==============================================================================
-# ENTROPIC SCREE: Function (v1.0.0), Simulation & Demonstration Script
+# ENTROPIC SCREE Function (v1.0.0) + Simulation & Demonstration Script
 #
 # Author: Terrence J. Lee-St. John
 # Organization: Enli (www.enli.com.au)
@@ -151,7 +151,7 @@ NumericMatrix fast_parallel_MI(IntegerMatrix mat, int num_bins, int cores) {
 # ==============================================================================
 # 1. ENTROPIC SCREE FUNCTION
 # ==============================================================================
-calculate_entropic_scree <- function(data
+Entropic.Scree <- function(data
                                      , low_entropy_thresh = 0.05
                                      , num_bins = NULL
                                      , bin_multiplier = 1.0
@@ -1298,7 +1298,7 @@ cat(sprintf("[***] K_eff (Effective Intrinsic Root Expansion Rank)  : %.2f\n", t
 # ==============================================================================
 # 4. RUN ENTROPIC SCREE
 # ==============================================================================
-results <- calculate_entropic_scree(observed_data
+results <- Entropic.Scree(observed_data
                                     , purge_constants = FALSE
                                     , check_collinearity = FALSE
                                     , interactive_mode = FALSE
