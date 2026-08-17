@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
 
 <p align="center">
-  <a href="#-usage-r-script"><strong>R Simulation Script 💻 (Includes Entropic Scree Function v1.0.0)</strong></a><br>
+  <a href="#-usage-r-script"><strong>R Simulation Script 💻</strong></a><br>
   <a href="#-installation"><strong>Python and R Packages 📦 (Coming Soon)</strong></a>
 </p>
 
@@ -24,6 +24,28 @@
 >
 > The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back to their generative roots. It provides an assumption-free diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
 
+## Quick Start - Entropic Scree Function v1.0.0 (R)
+
+While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree Function v1.0.0 in R immediately by sourcing the standalone function file.
+
+Just copy and paste the following block into your R console to automatically download and load the function into your R environment:
+
+```R
+# 1. Define the direct URL to the raw function script on GitHub
+url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.v1.0.0%20-%20ENLI.R"
+
+# 2. Define what you want to name the file on your computer
+file_name <- "Entropic.Scree.v1.0.0 - ENLI.R"
+
+# 3. Download the script to your current working directory
+download.file(url, destfile = file_name)
+
+# 4. Source the core function into your R environment
+source(file_name)
+
+# 5. Ex. To estimate the intrinsic rank and informational gravity of your tabular dataset (df)
+# results <- Entropic.Scree(df)
+```
 ---
 
 ## Structural Constraints of Linear Estimators
@@ -41,9 +63,7 @@ For over a century, the universal standard for evaluating a dataset's representa
 
 The Entropic Scree methodology resolves this by shifting the math from linear Euclidean space into topological information space.
 
-To guarantee global geometric coherence and enforce a strict metric space, the framework constructs a pairwise Normalized Mutual Information (NMI) matrix utilizing Information-Theoretic Jaccard
-
-Similarity:
+To guarantee global geometric coherence and enforce a strict metric space, the framework constructs a pairwise Normalized Mutual Information (NMI) matrix utilizing Information-Theoretic Jaccard Similarity:
 
 $$ \mathcal{M}_{i,j} = \frac{I(X_i; X_j)}{H(X_i) + H(X_j) - I(X_i; X_j)} $$
 
@@ -67,7 +87,7 @@ However, to provide an optional baseline convenience utility for rapid explorato
 
 * **Engine B (Triple-Tap) maps the Extended Signal Tail ($K_{extended}$):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 20-point linear regression to identify the exact index where the residual combinatorial signal significantly breaks out of the expected Idiosyncratic Informational Variance trajectory.
 
-⚠️ Heuristic Warning ⚠️
+⚠️ Automated Elbow Detection Heuristic Warning
 
 The Entropic Scree does not claim to possess the exact analytical Random Matrix Theory (RMT) bounds (such as the Marchenko-Pastur law) that strictly govern linear sample covariance matrices. Consequently, automated extraction in this space inherently relies on empirical heuristics.
 
@@ -104,7 +124,7 @@ $$ \Delta_K = K_{PCA} - K_{roots} $$
 
 ---
 
-## ⚠️ Important Note on Factor Extraction / Dimensionality Reduction ⚠️
+## ⚠️ Important Note on Factor Extraction / Dimensionality Reduction
 
 As detailed in the formal paper, the Entropic Scree is a **diagnostic oracle, not a linear projection matrix**.
 
@@ -128,7 +148,7 @@ install.packages("Entropic.Scree")
 
 ---
 
-## <a id="-usage-r-script"></a>💻 R Simulation (Includes Entropic Scree Function v1.0.0)
+## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function v1.0.0)
 
 This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ Idiosyncratic Informational Variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines, and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
 
