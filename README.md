@@ -28,7 +28,7 @@
 
 While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree Function v1.0.0 in R immediately by sourcing the standalone function file.
 
-Just copy and paste the following block into your R console to automatically download and load the function into your R environment:
+Just copy and paste the following block into your R console (and press Enter) to automatically download and load the Entropic.Scree() function into your R environment:
 
 ```R
 # 1. Define the direct URL to the raw function script on GitHub
@@ -160,14 +160,14 @@ This repository includes a fully-annotated simulation in R that is available to 
 * **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the dual Log-Gap and Triple-Tap convergence to extract the rank and complete the baseline comparisons without requiring manual console input.
 
 ### Quick Start
-Copy and paste the following code block into your R console or RStudio to download and open the script directly:
+Just copy and paste the following block into your R console (and press Enter) to automatically download and open the simulation script directly:
 
 ```R
 # 1. Define the direct URL to the raw script on GitHub
-url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic_Scree_R_Simulation%20-%20ENLI.R"
+url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R.Simulation%20-%20ENLI.R"
 
 # 2. Define what you want to name the file on your computer
-file_name <- "Entropic_Scree_R_Simulation - ENLI.R"
+file_name <- "Entropic.Scree.R.Simulation - ENLI.R"
 
 # 3. Download just the script
 download.file(url, destfile = file_name)
@@ -177,7 +177,7 @@ file.edit(file_name)
 ```
 
 ### Advanced Validation: Discretization Ablation (Appendix B)
-The repository also includes `Appendix_B_Binning_Ablation.R`. This script reproduces the stress-test from the paper's appendix, proving that while extreme binning heuristics (like Freedman-Diaconis) artificially compress probabilistic volume ($R_{eff}$), the extraction of the underlying generative rank ($K_{roots} = 20$) remains mathematically invariant. It also automatically generates the 1x3 panel graph showing the generative signal remaining cleanly separated despite the artificial compression of the topological space (driven by finite-sample estimation error).
+The repository also includes `Appendix.B.Binning.Ablation.R`. This script reproduces the stress-test from the paper's appendix, proving that while extreme binning heuristics (like Freedman-Diaconis) artificially compress probabilistic volume ($R_{eff}$), the extraction of the underlying generative rank ($K_{roots} = 20$) remains mathematically invariant. It also automatically generates the 1x3 panel graph showing the generative signal remaining cleanly separated despite the artificial compression of the topological space (driven by finite-sample estimation error).
 
 **Instructions:** Run this script in the exact same R workspace **immediately following** the successful execution of the main simulation script. It relies on the synthetic `observed_data` matrix already generated in your computer's memory by the primary simulation, ensuring you don't have to wait for the hostile environment to be generated twice.
 
@@ -199,8 +199,8 @@ The full methodology is formally introduced in an upcoming preprint. Once publis
 
 | **Related Resources** | **Link** |
 | --- | --- |
-| **The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (Preprint)** | *Coming Soon* |
-| **From Garbage to Gold: A Data Architectural Theory of Predictive Robustness (Preprint)** | [arXiv cs.LG](https://arxiv.org/abs/2603.12288) |
-| **G2G Preprint Simulation Repository** | [From Garbage to Gold GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
+| **The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (arXiv)** | *Coming Soon* |
+| **From Garbage to Gold (G2G): A Data Architectural Theory of Predictive Robustness (arXiv)** | [G2G arXiv](https://arxiv.org/abs/2603.12288) |
+| **G2G arXiv Simulation Repository** | [G2G GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
 | **Contact First Author** | [Email Me](mailto:terry@enli.com.au) |
 | **Enli Official Website** | [Enli: Predictive systems that remain stable under change](https://www.enli.com.au) |
