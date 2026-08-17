@@ -48,7 +48,7 @@ eig_default <- results$eigenvalues
 
 cat(sprintf("[2/3] Fetching eigenspectrum for %d bins...\n", bin_dense))
 capture.output({
-  res_dense <- calculate_entropic_scree(data = observed_data
+  res_dense <- Entropic.Scree(data = observed_data
                                         , num_bins = bin_dense
                                         , interactive_mode = FALSE
                                         , purge_constants = FALSE
@@ -58,7 +58,7 @@ eig_dense <- res_dense$eigenvalues
 
 cat(sprintf("[3/3] Fetching eigenspectrum for %d bins...\n", bin_extreme))
 capture.output({
-  res_extreme <- calculate_entropic_scree(data = observed_data
+  res_extreme <- Entropic.Scree(data = observed_data
                                           , num_bins = bin_extreme
                                           , interactive_mode = FALSE
                                           , purge_constants = FALSE
