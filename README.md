@@ -138,7 +138,7 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 
 ## <a id="-installation"></a>📦 Python and R Package Installation (Coming Soon)
 
-*Native packages for Python (via PyPI) and R (via CRAN) are currently in active development and will be released shortly. In the meantime, please utilize the standalone R simulation script below.*
+*Native packages for Python (via PyPI) and R (via CRAN) are currently in active development and will be released shortly.*
 
 **For Python (Coming Soon):**
 ```bash
@@ -160,7 +160,7 @@ This repository includes a fully-annotated simulation in R that is available to 
 
 **Notes:**
 * **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
-* **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading natively in RAM.
+* **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading in RAM.
 * **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the dual Log-Gap and Triple-Tap convergence to extract the rank and complete the baseline comparisons without requiring manual console input.
 
 ### Quick Start
