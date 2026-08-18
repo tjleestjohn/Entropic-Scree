@@ -20,9 +20,11 @@
 >
 > Offered as an upgrade over standard PCA and other methods that rely on strict assumptions about the nature of the underlying generative process, the Entropic Scree allows practitioners to estimate the intrinsic generative rank of their tabular data by evaluating a valid non-linear, information-theoretic space.
 >
-> If you have high-dimensional, mixed-type, noisy tabular data, standard PCA will systematically misrepresent its true dimensionality, while other topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration.
+> If you have high-dimensional, mixed-type, noisy tabular data, standard PCA will systematically misrepresent its true dimensionality, while other topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration. Furthermore, while standard non-linear baselines (like Kernel PCA) suffer structural collapse under even mild generative root entanglement, the Entropic Scree maintains a rigid, near-invariant boundary at the true generative rank.
 >
-> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back to their generative roots. It provides an assumption-free diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
+> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back towards their generative roots. By identifying this exact rank, the method can be used to explicitly size neural bottlenecks for downstream non-parametric manifold extractors (like autoencoders).
+>
+> It provides an assumption-free diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
 
 ## Quick Start - Entropic Scree Function v1.0.0 (R)
 
@@ -77,6 +79,8 @@ By utilizing a highly optimized C++ backend to evaluate this matrix, the Entropi
 * Evaluates pure shared dependency via Copula Theory (Sklar's Theorem), completely immune to marginal shape mismatches.
 * Subsumes non-linear and discrete relationships back into their root generative source.
 * Easily computes an $m \times m$ pairwise matrix regardless of sample size, utterly breaking the $N-1$ algebraic ceiling enforced by standard PCA.
+* Survives Root Entanglement: While standard non-linear baselines (like Kernel PCA) suffer structural collapse under even mild generative root entanglement, this geometry maintains a rigid, near-invariant boundary at the true generative rank.
+* Maps Structural Estrangement: Because it evaluates shared information rather than linear direction, the extracted axes physically push unrelated clusters of variables to opposite geometric poles. This allows practitioners to cleanly identify and untangle decoupled sub-networks directly from the primary factor loadings.
 
 ### The Diagnostic Framework and Automated Scanners
 Exactly like Cattell's classical variance-based scree test, the Entropic Scree is fundamentally designed as a **visual diagnostic framework**. Visual inspection of the log-linear spectral decay remains the gold standard for identifying the structural elbow that separates the generative signal from the idiosyncratic noise baseline.
@@ -150,9 +154,9 @@ install.packages("Entropic.Scree")
 
 ## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function v1.0.0)
 
-This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ Idiosyncratic Informational Variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines, and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
+This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ Idiosyncratic Informational Variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
 
-> ⏳ Hardware & Runtime Warning: This simulation is extremely heavy on both RAM and CPU. Generating the synthetic environment (expanding 20 latent roots into 20,000 proxies via a 21,759-term non-linear design matrix) is just as memory- and time-intensive as computing the 200 million pairwise dependencies for the final NMI matrix. A minimum of 16GB of RAM (32GB+ recommended) is strongly advised to prevent out-of-memory crashes. Depending on your hardware, generating the data and executing all four baseline models may take anywhere from 1 to 4+ hours. Step away - the script will automatically generate the final comparison plots when it finishes.
+> ⏳ Hardware & Runtime Warning: This simulation is extremely heavy on both RAM and CPU. Generating the synthetic environment (expanding 20 generative roots into 20,000 proxies via a 21,759-term non-linear design matrix) is just as memory- and time-intensive as computing the 200 million pairwise dependencies for the final NMI matrix. A minimum of 16GB of RAM (32GB+ recommended) is strongly advised to prevent out-of-memory crashes. Depending on your hardware, generating the data and executing all four baseline models may take anywhere from 1 to 4+ hours. Step away - the script will automatically generate the final comparison plots when it finishes.
 
 **Notes:**
 * **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
