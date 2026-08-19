@@ -18,13 +18,16 @@
 
 > **TL;DR**
 >
-> Offered as an upgrade over standard PCA and other methods that rely on strict assumptions about the nature of the underlying generative process, the Entropic Scree allows practitioners to estimate the intrinsic generative rank of their tabular data by evaluating a valid non-linear, information-theoretic space.
+> If you are working with high-dimensional, mixed-type, noisy tabular data, standard PCA fundamentally fractures non-linear dependencies into "Spurious Orthogonal Dimensions," drastically overestimating the true rank of the system. Meanwhile, non-linear alternatives like Kernel PCA and Euclidean nearest-neighbor estimators suffer structural collapse when generative roots are entangled or sparse.
+> 
+> Offered as an upgrade over these baseline methods that rely on strict assumptions about the underlying generative process, the Entropic Scree framework uses Normalized Mutual Information to collapse those spurious expansions back towards their true generative roots. By more faithfully identifying the true generative rank, the results can be used to explicitly size neural bottlenecks for downstream non-parametric manifold extractors (like autoencoders).
+> 
+> The Entropic Scree also:
+> * Quantifies the underlying "informational gravity" of the roots, offering insight into the system's overall average stability, as well as the relative informational dominance of individual roots;
+> * Estimates the data's overall ratio of shared signal to unshared idiosyncratic informational variance (noise);
+> * Serves as a powerful exploratory map that separates unrelated clusters of variables, allowing you to easily identify decoupled sub-networks.
 >
-> If you have high-dimensional, mixed-type, noisy tabular data, standard PCA will systematically misrepresent its true dimensionality, while other topological estimators (e.g., TWO-NN, MLE) also fail in these regimes due to distance concentration. Furthermore, while standard non-linear baselines (like Kernel PCA) suffer structural collapse under even mild generative root entanglement, the Entropic Scree maintains a rigid, near-invariant boundary at the true generative rank.
->
-> The **Entropic Scree** replaces variance with **Normalized Mutual Information** to bypass algebraic sample-size limits ($m > N$), natively handle non-linear interactions, and collapse spurious linear expansions back towards their generative roots. By identifying this exact rank, the method can be used to explicitly size neural bottlenecks for downstream non-parametric manifold extractors (like autoencoders).
->
-> It provides an assumption-free diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
+> Ultimately, it provides an assumption-free diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
 
 ## Quick Start - Entropic Scree Function v1.0.0 (R)
 
