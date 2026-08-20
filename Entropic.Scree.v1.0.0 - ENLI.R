@@ -850,7 +850,7 @@ Entropic.Scree <- function(data
   cat(" -> Framework developed by Terrence J. Lee-St. John (Enli)\n")
   cat(" -> Released under the Apache License 2.0 (Open Source)\n")
   cat(" -> For full methods and metric definitions, see:\n")
-  cat("    The Entropic Scree (2026) - https://arxiv.org/abs/XXXX.XXXXX\n")
+  cat("    The Entropic Scree (2026) - https://doi.org/10.5281/zenodo.22028087\n")
   cat("===================================================================================\n\n")
 
   # ============================================================================
