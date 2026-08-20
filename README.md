@@ -12,6 +12,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/entropic-scree/blob/main/LICENSE)
 
 <p align="center">
+  <a href="#-quick-start-function"><strong>Quick Start R Function ⚡</strong></a><br>
   <a href="#-usage-r-script"><strong>R Simulation Script 💻</strong></a><br>
   <a href="#-installation"><strong>Python and R Packages 📦 (Coming Soon)</strong></a>
 </p>
@@ -29,7 +30,7 @@
 >
 > Ultimately, it provides a non-parametric, model-agnostic diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
 
-## Quick Start - Entropic Scree Function v1.0.0 (R)
+## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function v1.0.0 (R)
 
 While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree Function v1.0.0 in R immediately by sourcing the standalone function file.
 
