@@ -27,7 +27,7 @@
 > * Estimates the data's overall ratio of shared signal to unshared idiosyncratic informational variance (noise);
 > * Serves as a powerful exploratory map that separates unrelated clusters of variables, allowing you to easily identify decoupled sub-networks.
 >
-> Ultimately, it provides an assumption-free diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
+> Ultimately, it provides an non-parametric, model-agnostic diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
 
 ## Quick Start - Entropic Scree Function v1.0.0 (R)
 
