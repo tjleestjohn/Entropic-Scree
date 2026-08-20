@@ -8,8 +8,8 @@
 
 **Links**
 
-[![Read arXiv Preprint (Coming Soon)](https://img.shields.io/badge/arXiv_Preprint-Coming_Soon-lightgrey?style=for-the-badge)](#)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
+[![Read Preprint](https://img.shields.io/badge/Read_Preprint-Zenodo-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.22028087)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/entropic-scree/blob/main/LICENSE)
 
 <p align="center">
   <a href="#-usage-r-script"><strong>R Simulation Script 💻</strong></a><br>
@@ -27,7 +27,7 @@
 > * Estimates the data's overall ratio of shared signal to unshared idiosyncratic informational variance (noise);
 > * Serves as a powerful exploratory map that separates unrelated clusters of variables, allowing you to easily identify decoupled sub-networks.
 >
-> Ultimately, it provides an non-parametric, model-agnostic diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
+> Ultimately, it provides a non-parametric, model-agnostic diagnostic whose comparative advantage aggressively compounds at scale and with system complexity.
 
 ## Quick Start - Entropic Scree Function v1.0.0 (R)
 
@@ -192,22 +192,23 @@ The repository also includes `Appendix.B.Binning.Ablation.R`. This script reprod
 
 ## Citation & Contact
 
-The full methodology is formally introduced in an upcoming preprint. Once published, the arXiv link and full BibTeX citation will be updated here.
+The full methodology is formally presented in Zenodo Preprint.
 
 ```bibtex
-% Coming Soon
-@article{leestjohn2026entropic-scree,
+@misc{leestjohn2026entropic-scree,
   title={The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
   author={Lee-St. John, Terrence J.},
-  journal={arXiv preprint (*Coming Soon*)},
+  publisher={Zenodo},
+  doi={10.5281/zenodo.22028087},
+  url={https://doi.org/10.5281/zenodo.22028087},
   year={2026}
 }
 ```
 
 | **Related Resources** | **Link** |
 | --- | --- |
-| **The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (arXiv)** | *Coming Soon* |
-| **From Garbage to Gold (G2G): A Data Architectural Theory of Predictive Robustness (arXiv)** | [G2G arXiv](https://arxiv.org/abs/2603.12288) |
-| **G2G arXiv Simulation Repository** | [G2G GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
+| **The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (Zenodo Preprint)** | [Entropic Scree Zenodo Preprint](https://doi.org/10.5281/zenodo.22028087) |
+| **From Garbage to Gold (G2G): A Data Architectural Theory of Predictive Robustness (arXiv Preprint)** | [G2G arXiv Preprint](https://arxiv.org/abs/2603.12288) |
+| **G2G arXiv Preprint Simulation Repository** | [G2G GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
 | **Contact First Author** | [Email Me](mailto:terry@enli.com.au) |
 | **Enli Official Website** | [Enli: Predictive systems that remain stable under change](https://www.enli.com.au) |
