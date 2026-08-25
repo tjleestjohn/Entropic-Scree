@@ -9,7 +9,7 @@
 # the Entropic Scree to extract the Intrinsic Generative Rank (r).
 # ==============================================================================
 #
-# Copyright 2026 Terrence J. Lee-St. John
+# Copyright 2026 Terrence J. Lee-St. John (Enli)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
