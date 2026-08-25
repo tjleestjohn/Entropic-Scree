@@ -4,9 +4,10 @@
 # Author: Terrence J. Lee-St. John
 # Organization: Enli (www.enli.com.au)
 #
-# Description: Generates a high-dimensional, mixed-type, noisy synthetic
-# dataset to demonstrate the systematic degradation of standard PCA, and utilizes
-# the Entropic Scree to extract the Intrinsic Generative Rank (r).
+# Description: An information-theoretic diagnostic technique for estimating the 
+# intrinsic dimensionality of tabular datasets. Evaluates shared probability mass
+# via a transformed mutual information metric. Aims to extract the Intrinsic
+# Generative Rank (r) and structural topology.
 # ==============================================================================
 #
 # Copyright 2026 Terrence J. Lee-St. John (Enli)
