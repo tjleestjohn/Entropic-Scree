@@ -49,8 +49,8 @@ download.file(url, destfile = file_name)
 # 4. Source the core function into your R environment
 source(file_name)
 
-# 5. Ex. To estimate the intrinsic rank and informational gravity of your tabular dataset (df)
-# results <- Entropic.Scree(df)
+# 5. Ex. To estimate the intrinsic rank and informational gravity of your tabular dataset (dt)
+# results <- Entropic.Scree(dt)
 ```
 ---
 
