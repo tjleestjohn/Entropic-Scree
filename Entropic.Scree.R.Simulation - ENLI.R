@@ -1,12 +1,13 @@
 # ==============================================================================
-# ENTROPIC SCREE Function (v1.0.0) + Simulation & Demonstration Script
+# ENTROPIC SCREE Function (v1.0.0)
 #
 # Author: Terrence J. Lee-St. John
 # Organization: Enli (www.enli.com.au)
 #
-# Simulation Description: Generates a high-dimensional, mixed-type, noisy synthetic
-# dataset to demonstrate the systematic degradation of standard PCA, and utilizes
-# the Entropic Scree to extract the Intrinsic Generative Rank (r).
+# Description: An information-theoretic diagnostic technique for estimating the 
+# intrinsic dimensionality of tabular datasets. Evaluates shared probability mass
+# via a transformed mutual information metric. Aims to extract the Intrinsic
+# Generative Rank (r) and structural topology.
 # ==============================================================================
 #
 # Copyright 2026 Terrence J. Lee-St. John (Enli)
@@ -152,29 +153,34 @@ NumericMatrix fast_parallel_MI(IntegerMatrix mat, int num_bins, int cores) {
 # 1. ENTROPIC SCREE FUNCTION
 # ==============================================================================
 Entropic.Scree <- function(data
-                                     , low_entropy_thresh = 0.05
-                                     , num_bins = NULL
-                                     , bin_multiplier = 1.0
-                                     , num_cores = parallel::detectCores() - 2
-                                     , interactive_mode = TRUE
-                                     , purge_constants = TRUE
-                                     , check_collinearity = TRUE
-                                     , triple_tap_window = 20
-                                     , extract_eigenvectors = FALSE) {
-
+                           , low_entropy_thresh = 0.05
+                           , num_bins = NULL
+                           , bin_multiplier = 1.0
+                           , num_cores = parallel::detectCores() - 2
+                           , interactive_mode = TRUE
+                           , purge_constants = TRUE
+                           , check_collinearity = TRUE
+                           , triple_tap_window = 20
+                           , extract_eigenvectors = FALSE) {
+  
+  # Enforce data.table requirement
+  if (!data.table::is.data.table(data)) {
+    stop("Error: 'data' must be a data.table. Please convert your dataset using data.table::as.data.table() before running Entropic.Scree.")
+  }
+  
   start_time <- Sys.time()
-  dt <- data.table::as.data.table(data)
-
+  dt <- data.table::copy(data)
+  
   # Enforce a minimum window size of 3 for linear regression (df >= 1)
   triple_tap_window <- max(3, as.integer(triple_tap_window))
-
+  
   # ----------------------------------------------------------------------------
   # [0/9] INITIAL DIMENSION CHECK
   # ----------------------------------------------------------------------------
   if (ncol(dt) < 2) {
     stop("Execution Halted: The input dataset must contain at least 2 columns to calculate mutual information.")
   }
-
+  
   # ----------------------------------------------------------------------------
   # [1/9] PURGE CONSTANTS & DUPLICATES
   # ----------------------------------------------------------------------------
@@ -183,13 +189,13 @@ Entropic.Scree <- function(data
     const_cols <- names(dt)[sapply(dt, function(x)
       data.table::uniqueN(x, na.rm = TRUE) <= 1)]
     if (length(const_cols) > 0) dt[, (const_cols) := NULL]
-
+    
     dup_cols <- duplicated(as.list(dt))
     if (any(dup_cols)) dt <- dt[, !dup_cols, with = FALSE]
   } else {
     cat("[1/10] Skipping constant and duplicate purge (user requested)...\n")
   }
-
+  
   # ----------------------------------------------------------------------------
   # [2/9] MULTIVARIATE COLLINEARITY CHECK
   # ----------------------------------------------------------------------------
@@ -197,19 +203,19 @@ Entropic.Scree <- function(data
     cat("[2/10] Checking for perfect multivariate linear combinations...\n")
     num_cols <- names(dt)[sapply(dt, is.numeric)]
     if (length(num_cols) > 1 && nrow(dt) > length(num_cols)) {
-
+      
       p_cols <- length(num_cols)
       target_rows <- min(nrow(dt), p_cols + 500)
-
+      
       if ((as.numeric(target_rows) * as.numeric(p_cols)) < 2147000000) {
         set.seed(42)
         sample_idx <- sample(seq_len(nrow(dt)), target_rows)
-        num_mat <- as.matrix(na.omit(dt[sample_idx, ..num_cols]))
-
+        num_mat <- as.matrix(na.omit(dt[sample_idx, num_cols, with = FALSE]))
+        
         if (nrow(num_mat) > 0) {
           qr_mat <- cbind(Intercept = 1, num_mat)
           qr_decomp <- qr(qr_mat, tol = 1e-7)
-
+          
           if (qr_decomp$rank < ncol(qr_mat)) {
             drop_indices <- qr_decomp$pivot[(qr_decomp$rank + 1):ncol(qr_mat)]
             lin_combos <- setdiff(colnames(qr_mat)[drop_indices], "Intercept")
@@ -226,12 +232,12 @@ Entropic.Scree <- function(data
   } else {
     cat("[2/10] Skipping collinearity check (user requested)...\n")
   }
-
+  
   cat("[3/10] Discretizing continuous data and dense-ranking categoricals...\n")
   if (is.null(num_bins)) {
     num_bins <- max(2, ceiling(bin_multiplier * nrow(dt)^(1/3)))
   }
-
+  
   cols <- names(dt)
   dt[, (cols) := lapply(.SD, function(x) {
     if (is.numeric(x) && data.table::uniqueN(x) > num_bins) {
@@ -240,57 +246,57 @@ Entropic.Scree <- function(data
       data.table::frank(x, ties.method = "dense")
     }
   })]
-
+  
   cat("[4/10] Purging non-linear monotonic duplicates and locking types...\n")
   dup_cols_post <- duplicated(as.list(dt))
   if (any(dup_cols_post)) dt <- dt[, !dup_cols_post, with = FALSE]
-
+  
   valid_cols <- names(dt)
   dt[, (valid_cols) := lapply(.SD, function(x) as.integer(as.factor(x)))]
-
+  
   cat("[5/10] Calculating marginal entropies and purging near-constants...\n")
   H_vec <- sapply(dt, infotheo::entropy)
   valid_vars <- names(H_vec)[H_vec >= low_entropy_thresh]
   if (length(H_vec) > length(valid_vars)) {
-    dt <- dt[, ..valid_vars]
+    dt <- dt[, valid_vars, with = FALSE]
     H_vec <- H_vec[valid_vars]
   }
-
+  
   p <- ncol(dt)
   if (p < 2) stop("Execution Halted: Less than 2 valid variables remain.")
-
+  
   cat(sprintf("[6/10] Computing %d x %d Mutual Information Matrix (C++ OpenMP)...\n", p, p))
-
+  
   mat_data <- as.matrix(dt)
   bin_sample_sizes <- apply(mat_data, 2, tabulate)
   rm(dt)
   gc(verbose = FALSE)
-
+  
   safe_target_cores <- max(1, num_cores)
   MI_mat <- fast_parallel_MI(mat_data, num_bins = num_bins, cores = safe_target_cores)
   rownames(MI_mat) <- colnames(MI_mat) <- valid_vars
-
+  
   cat("[7/10] Applying Joint Entropy (Jaccard) Normalization...\n")
   sum_H_mat <- outer(H_vec, H_vec, FUN = "+")
   joint_H_mat <- sum_H_mat - MI_mat
   joint_H_mat[joint_H_mat < 1e-9] <- 1e-9
-
+  
   NMI_mat <- MI_mat / joint_H_mat
   diag(NMI_mat) <- 1.0
-
+  
   cat("[8/10] Applying Double-Centering...\n")
   m_valid <- length(valid_vars)
-
+  
   # Vectorized Double-Centering
   row_means <- rowMeans(NMI_mat)
   grand_mean <- mean(row_means)
-
+  
   NMI_mat_c <- NMI_mat - outer(row_means, row_means, FUN = "+") + grand_mean
-
+  
   # Calculate trace of the centered matrix
   Tr_Mc <- sum(diag(NMI_mat_c))
   mean_trace <- Tr_Mc / m_valid
-
+  
   cat("[9/10] Extracting Entropic Latent Factors (Eigen Decomposition)...\n")
   if (extract_eigenvectors) {
     eigen_res <- eigen(NMI_mat_c, symmetric = TRUE)
@@ -301,17 +307,17 @@ Entropic.Scree <- function(data
     raw_eig_vals <- eigen_res$values
     vectors_out <- NULL
   }
-
+  
   # Calculate SCDR before clipping
   m_plus <- sum(raw_eig_vals[raw_eig_vals > 0])
   m_minus <- sum(abs(raw_eig_vals[raw_eig_vals < 0]))
   SCDR <- (m_minus / m_plus) * 100
-
+  
   eig_vals <- pmax(raw_eig_vals, 1e-9)
-
+  
   # Constructive Spectral Mass (sum of positive clipped eigenvalues)
   m_plus <- sum(eig_vals)
-
+  
   cat("[10/10] Calculating Total Unique Probabilistic Volume (R_eff) and Estimating Phase Transitions...\n")
   sig_vals <- eig_vals[eig_vals > 0]
   if (length(sig_vals) > 0) {
@@ -321,33 +327,33 @@ Entropic.Scree <- function(data
   } else {
     R_eff <- 1
   }
-
+  
   # ==========================================================================
   # STEP 1: MACRO GAP BOUNDARY (IDIOSYNCRATIC INFORMATIONAL VARIANCE CLIFF DETECTION)
   # ==========================================================================
   n_total <- length(eig_vals)
   valid_k <- sum(eig_vals > mean_trace)
-
+  
   macro_max_bulk_gap <- NA_real_
   macro_actual_gap <- NA_real_
   macro_gap_ratio <- NA_real_
   top_of_bulk_idx <- NA_integer_
-
+  
   valid_search_space <- eig_vals[eig_vals > 1e-8]
-
+  
   if (length(valid_search_space) > 10) {
     all_gaps_diag <- abs(diff(valid_search_space))
     n_active <- length(valid_search_space)
     noise_start_idx <- min(valid_k + max(3, floor(n_active * 0.05)), n_active - 5)
     noise_tail_idx <- noise_start_idx:(n_active - 1)
-
+    
     if(length(noise_tail_idx) > 0) {
       noise_gaps <- all_gaps_diag[noise_tail_idx]
       max_noise_gap <- max(noise_gaps)
-
+      
       macro_multiplier <- 1.5
       gap_threshold <- max(1e-6, max_noise_gap * macro_multiplier)
-
+      
       macroscopic_gap_indices <- which(all_gaps_diag > gap_threshold)
       if (length(macroscopic_gap_indices) > 0) {
         top_of_bulk_idx <- max(macroscopic_gap_indices) + 1
@@ -357,9 +363,9 @@ Entropic.Scree <- function(data
       }
     }
   }
-
+  
   search_start_idx <- if (!is.na(top_of_bulk_idx)) max(2, top_of_bulk_idx - 1) else valid_k
-
+  
   # ==========================================================================
   # STEP 2: ENGINE A - MAXIMUM SECONDARY EIGENVALUE RATIO (LOG-GAP)
   # ==========================================================================
@@ -369,10 +375,10 @@ Entropic.Scree <- function(data
   log_gap_ratio <- NA_real_
   log_gap_fallback <- FALSE
   n_valid_search <- length(valid_search_space)
-
+  
   if (n_valid_search >= 3) {
     all_log_gaps <- abs(diff(log(valid_search_space)))
-
+    
     if (!is.na(top_of_bulk_idx) && top_of_bulk_idx < 4) {
       # Ultra-low rank edge case
       ordered_gaps <- order(all_log_gaps, decreasing = TRUE)
@@ -397,7 +403,7 @@ Entropic.Scree <- function(data
   } else {
     K_log_gap <- max(1, valid_k)
   }
-
+  
   if (K_log_gap < length(eig_vals)) {
     val_current <- eig_vals[K_log_gap]
     val_next <- eig_vals[K_log_gap + 1]
@@ -406,7 +412,7 @@ Entropic.Scree <- function(data
       log_gap_pct_drop <- (1 - (val_next / val_current)) * 100
     }
   }
-
+  
   # ==========================================================================
   # STEP 3: ENGINE B - TRIPLE-TAP (DYNAMIC LINEAR WITH MACRO-STITCH)
   # ==========================================================================
@@ -419,7 +425,7 @@ Entropic.Scree <- function(data
   prob_target <- NA_real_
   stitch_applied <- FALSE
   triple_tap_fallback <- FALSE
-
+  
   if (search_start_idx >= 3) {
     # 1. Apply the Topological Stitch directly to the eigenvalues
     stitched_eig_vals <- eig_vals
@@ -429,46 +435,46 @@ Entropic.Scree <- function(data
       stitched_eig_vals[top_of_bulk_idx:length(stitched_eig_vals)] <- stitched_eig_vals[top_of_bulk_idx:length(stitched_eig_vals)] + stitch_constant
       stitch_applied <- TRUE
     }
-
+    
     # 2. Dynamically scale sigma using t-dist to target a family-wise false positive rate of 1/100
     # Bonferroni correction: alpha = 0.01 / number of tests (search_start_idx)
     prob_target <- 1 - (1 / (100 * search_start_idx))
-
+    
     # Pre-compute design matrix for the dynamic reference window - LINEAR ONLY
     x_ref <- 0:(triple_tap_window - 1)
     X_mat <- cbind(1, x_ref)
-
+    
     # Scan backwards from the top of the bounded space down to 1
     for (i in seq(search_start_idx, 1, by = -1)) {
       target_val <- stitched_eig_vals[i]
-
+      
       # Reference window: next N eigenvalues to calculate linear expectation
       ref_start <- i + 1
       ref_end <- min(length(stitched_eig_vals), i + triple_tap_window)
-
+      
       if (ref_start > length(stitched_eig_vals)) next # Safety check at the absolute tail
-
+      
       ref_vals <- stitched_eig_vals[ref_start:ref_end]
-
+      
       if (length(ref_vals) == triple_tap_window) {
         # Fit 1st degree polynomial (2 params). df = window - 2
         df_local <- triple_tap_window - 2
         dynamic_t <- qt(prob_target, df = df_local)
         current_multiplier <- max(2.0, dynamic_t)
-
+        
         fit <- lm.fit(x = X_mat, y = ref_vals)
-
+        
         # Intercept is the prediction at the first reference point (x = 0).
         # We predict the target eigenvalue one step backward (x = -1).
         expected_val <- fit$coefficients[1] - fit$coefficients[2]
-
+        
         # Protect against linear overshoot pulling the expected value negative
         expected_val <- max(1e-12, expected_val)
-
+        
         # Calculate local standard deviation of residuals (RSS / df)
         rss <- sum(fit$residuals^2)
         local_sd <- max(1e-12, sqrt(rss / df_local))
-
+        
         if (target_val > (expected_val + current_multiplier * local_sd)) {
           K_triple_tap <- i
           triple_tap_multiplier <- current_multiplier
@@ -483,10 +489,10 @@ Entropic.Scree <- function(data
         df_local <- length(ref_vals) - 1
         dynamic_t <- qt(prob_target, df = df_local)
         current_multiplier <- max(2.0, dynamic_t)
-
+        
         local_mean <- mean(ref_vals)
         local_sd <- max(1e-12, sd(ref_vals))
-
+        
         if (target_val > (local_mean + current_multiplier * local_sd)) {
           K_triple_tap <- i
           triple_tap_multiplier <- current_multiplier
@@ -499,30 +505,30 @@ Entropic.Scree <- function(data
       }
     }
   }
-
+  
   # Fallback if Triple-Tap never triggers (or if search_start_idx < 3)
   if (is.na(K_triple_tap)) {
     K_triple_tap <- K_log_gap
     triple_tap_fallback <- TRUE
   }
-
+  
   # Safely capture the multiplier for the printout if it never broke but we had space
   if (is.na(triple_tap_multiplier) && search_start_idx >= 3) {
     triple_tap_multiplier <- max(2.0, qt(1 - (1 / (100 * search_start_idx)), df = triple_tap_window - 2))
   }
-
+  
   # ============================================================================
   # WAVE 1: INITIAL OUTPUT & METRICS
   # ============================================================================
   pct_prob_volume <- (R_eff / m_valid) * 100
   pct_redundant_signal <- (1 - (R_eff / m_valid)) * 100
   redundant_signal_volume <- m_valid - R_eff
-
+  
   n_eigen_gt_mean <- valid_k
   n_eigen_le_mean <- n_total - valid_k
-
+  
   if (requireNamespace("ggplot2", quietly = TRUE)) {
-
+    
     # Define dual-lines for GGplot dynamically based on convergence
     if (K_log_gap == K_triple_tap) {
       lines_geom <- ggplot2::geom_vline(xintercept = K_log_gap, color = "forestgreen", linetype = "dashed", linewidth = 1.2)
@@ -534,13 +540,13 @@ Entropic.Scree <- function(data
       )
       sub_title_text <- sprintf("Observed Generative Rank (Orange) = %d | Extended Signal Tail (Purple) = %d", K_log_gap, K_triple_tap)
     }
-
+    
     # ZOOMED VIEW
     max_k <- max(K_log_gap, K_triple_tap)
     zoom_start <- max(1, min(K_log_gap, K_triple_tap) - 5)
     zoom_end <- min(length(eig_vals), max_k + 15)
     plot_df_zoom <- data.frame(Rank = zoom_start:zoom_end, Eigenvalue = eig_vals[zoom_start:zoom_end])
-
+    
     p_scree_zoom <- ggplot2::ggplot(plot_df_zoom, ggplot2::aes(x = Rank, y = Eigenvalue)) +
       ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
       ggplot2::geom_point(color = "dodgerblue", size = 2) +
@@ -550,17 +556,17 @@ Entropic.Scree <- function(data
       ggplot2::labs(title = "Zoomed View", x = "Eigenvalue Index", y = "Log(Eigenvalue)") +
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
-
+    
     # MACRO VIEW (Dynamically extended)
     macro_base <- max(50, max_k * 10)
     if (!is.na(top_of_bulk_idx)) {
       macro_base <- max(macro_base, top_of_bulk_idx + 25)
     }
     macro_end <- min(length(eig_vals), macro_base)
-
+    
     plot_df_macro <- data.frame(Rank = 1:macro_end, Eigenvalue = eig_vals[1:macro_end])
     macro_y_max <- if(length(eig_vals) >= 2) eig_vals[2] * 1.1 else max(eig_vals)
-
+    
     p_scree_macro <- ggplot2::ggplot(plot_df_macro, ggplot2::aes(x = Rank, y = Eigenvalue)) +
       ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
       ggplot2::geom_point(color = "dodgerblue", size = 2) +
@@ -570,7 +576,7 @@ Entropic.Scree <- function(data
       ggplot2::labs(title = "Macro View", x = "Eigenvalue Index", y = "Log(Eigenvalue)") +
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
-
+    
     if (requireNamespace("patchwork", quietly = TRUE)) {
       combined_plot <- (p_scree_macro + p_scree_zoom) +
         patchwork::plot_annotation(
@@ -585,7 +591,7 @@ Entropic.Scree <- function(data
       print(p_scree_zoom)
     }
   }
-
+  
   cat("\n===================================================================================\n")
   cat(" STRUCTURAL COMPOSITION\n")
   cat("===================================================================================\n")
@@ -604,7 +610,7 @@ Entropic.Scree <- function(data
   cat(sprintf(" -> %-50s : %d\n", "Eigenvalues > Mean Trace", n_eigen_gt_mean))
   cat(sprintf(" -> %-50s : %d\n", "Eigenvalues <= Mean Trace", n_eigen_le_mean))
   cat("===================================================================================\n\n")
-
+  
   cat("===================================================================================\n")
   cat(" AUTOMATED ELBOW DETECTION (DUAL-DIAGNOSTIC ENSEMBLE)\n")
   cat("===================================================================================\n")
@@ -633,25 +639,25 @@ Entropic.Scree <- function(data
     cat(sprintf(" -> %-43s : %.6f\n", "Calculated Local Baseline Sigma (SD)", triple_tap_local_sd))
   }
   if (!is.na(triple_tap_multiplier)) {
-    cat(sprintf(" -> %-43s : %.2f (1-α = %.6f)\n", "Required Local t-Multiplier", triple_tap_multiplier, prob_target))
+    cat(sprintf(" -> %-43s : %.2f (1-alpha = %.6f)\n", "Required Local t-Multiplier", triple_tap_multiplier, prob_target))
   }
   if (!is.na(triple_tap_actual_sigma)) {
     cat(sprintf(" -> %-43s : %.2f Sigma Breakout\n", "Actual vs Expected", triple_tap_actual_sigma))
   }
   cat("===================================================================================\n")
-
+  
   # ============================================================================
   # WAVE 2: INTERACTIVE USER OVERRIDE (OR DEFAULTING)
   # ============================================================================
   # Default Assignments for non-interactive execution
   K_roots <- K_log_gap
   K_extended <- max(K_log_gap, K_triple_tap)
-
+  
   if (interactive_mode) {
     cat("\n[WARNING]: The automated extractors rely on statistical heuristics and\n")
     cat("may not perfectly align with the true structural elbow of your specific dataset.\n")
     cat("Please visually examine the generated scree plot.\n\n")
-
+    
     while (TRUE) {
       # 1. Prompt for Observed Generative Rank
       ans_r <- trimws(readline(prompt = sprintf("Enter the Observed Generative Rank (K_roots) [Press Enter to keep %d]: ", K_roots)))
@@ -659,23 +665,23 @@ Entropic.Scree <- function(data
         parsed_r <- suppressWarnings(as.integer(ans_r))
         if (!is.na(parsed_r) && parsed_r > 0 && parsed_r <= m_valid) K_roots <- parsed_r
       }
-
+      
       # 2. Prompt for Extended Signal Tail Rank
       ans_ext <- trimws(readline(prompt = sprintf("Enter the rank of the Extended Signal Tail [Press Enter to keep %d]: ", K_extended)))
       if (ans_ext != "") {
         parsed_ext <- suppressWarnings(as.integer(ans_ext))
         if (!is.na(parsed_ext) && parsed_ext > 0 && parsed_ext <= m_valid) K_extended <- parsed_ext
       }
-
+      
       if (K_roots > K_extended) {
         cat("[-] Warning: The Extended Signal Tail Rank should be >= the Observed Generative Rank.\n")
       }
-
+      
       # ====================================================================
       # INTERACTIVE GRAPH PREVIEW & METRICS
       # ====================================================================
       if (requireNamespace("ggplot2", quietly = TRUE)) {
-
+        
         # Setup previous engine lines (faded)
         if (K_log_gap == K_triple_tap) {
           prev_lines <- ggplot2::geom_vline(xintercept = K_log_gap, color = "gray60", linetype = "dashed", linewidth = 1)
@@ -685,7 +691,7 @@ Entropic.Scree <- function(data
             ggplot2::geom_vline(xintercept = K_triple_tap, color = "gray70", linetype = "twodash", linewidth = 1)
           )
         }
-
+        
         # Draw user lines: Solid for roots, dashed for extended tail
         root_line <- ggplot2::geom_vline(xintercept = K_roots, color = "forestgreen", linetype = "solid", linewidth = 1.2)
         if (K_roots != K_extended) {
@@ -693,15 +699,15 @@ Entropic.Scree <- function(data
         } else {
           ext_line <- NULL
         }
-
+        
         final_lines <- list(root_line, ext_line)
-
+        
         # 1. ZOOMED VIEW
         zoom_start_upd <- max(1, min(K_log_gap, K_triple_tap, K_roots) - 5)
         zoom_end_upd <- min(length(eig_vals), max(K_log_gap, K_triple_tap, K_extended) + 15)
-
+        
         plot_df_zoom_upd <- data.frame(Rank = zoom_start_upd:zoom_end_upd, Eigenvalue = eig_vals[zoom_start_upd:zoom_end_upd])
-
+        
         p_scree_zoom_upd <- ggplot2::ggplot(plot_df_zoom_upd, ggplot2::aes(x = Rank, y = Eigenvalue)) +
           ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
           ggplot2::geom_point(color = "dodgerblue", size = 2) +
@@ -711,17 +717,17 @@ Entropic.Scree <- function(data
           ggplot2::labs(title = "Zoomed View", x = "Eigenvalue Index (m)", y = "Log(Eigenvalue)") +
           ggplot2::theme_minimal(base_size = 14) +
           ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
-
+        
         # 2. MACRO VIEW
         macro_base_upd <- max(50, K_extended * 10, K_log_gap * 10)
         if (!is.na(top_of_bulk_idx)) {
           macro_base_upd <- max(macro_base_upd, top_of_bulk_idx + 25)
         }
         macro_end_upd <- min(length(eig_vals), macro_base_upd)
-
+        
         plot_df_macro_upd <- data.frame(Rank = 1:macro_end_upd, Eigenvalue = eig_vals[1:macro_end_upd])
         macro_y_max <- if(length(eig_vals) >= 2) eig_vals[2] * 1.1 else max(eig_vals)
-
+        
         p_scree_macro_upd <- ggplot2::ggplot(plot_df_macro_upd, ggplot2::aes(x = Rank, y = Eigenvalue)) +
           ggplot2::geom_line(color = "dodgerblue", linewidth = 1) +
           ggplot2::geom_point(color = "dodgerblue", size = 2) +
@@ -731,7 +737,7 @@ Entropic.Scree <- function(data
           ggplot2::labs(title = "Macro View", x = "Eigenvalue Index (m)", y = "Log(Eigenvalue)") +
           ggplot2::theme_minimal(base_size = 14) +
           ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 12))
-
+        
         # Render Side-by-Side
         if (requireNamespace("patchwork", quietly = TRUE)) {
           combined_plot_upd <- (p_scree_macro_upd + p_scree_zoom_upd) +
@@ -747,20 +753,20 @@ Entropic.Scree <- function(data
           print(p_scree_zoom_upd)
         }
       }
-
+      
       # --- PREVIEW GRAVITY CALCULATIONS ---
       # 1. Total Volume is aggregated up to K_extended
       signal_variance_prev <- sum(eig_vals[1:K_extended])
       signal_weight_prev <- signal_variance_prev / m_plus
       unique_signal_volume_prev <- R_eff * signal_weight_prev
       total_signal_volume_prev <- unique_signal_volume_prev + redundant_signal_volume
-
+      
       # 2. Rebundle Gravity purely into K_roots
       AIG_prev <- total_signal_volume_prev / K_roots
       core_eigenvals_prev <- eig_vals[1:K_roots]
       p_core_prev <- core_eigenvals_prev / sum(core_eigenvals_prev)
       FSIG_prev <- p_core_prev * total_signal_volume_prev
-
+      
       cat("\n===================================================================================\n")
       cat(sprintf(" (PREVIEW) ELBOW METRICS (K_roots = %d, K_extended = %d) [K_extended Volume Rebundled to K_roots]\n", K_roots, K_extended))
       cat("===================================================================================\n")
@@ -771,7 +777,7 @@ Entropic.Scree <- function(data
       cat(" -> Structural Topology Profile (Relative to FSIG_1):\n")
       print(round(STP_prev, 3))
       cat("===================================================================================\n\n")
-
+      
       ans_confirm <- trimws(readline(prompt = "Do you want to finalize these ranks? (Y/N): "))
       if (tolower(ans_confirm) %in% c("y", "yes")) {
         cat("\n[+] Finalizing rank selections.\n")
@@ -779,22 +785,22 @@ Entropic.Scree <- function(data
       }
     }
   }
-
+  
   # --- FINAL GRAVITY CALCULATIONS ---
   # 1. Capture Total Shared Signal Volume strictly up to the Extended Signal Tail
   signal_variance <- sum(eig_vals[1:K_extended])
   signal_weight <- signal_variance / m_plus
   unique_signal_volume <- R_eff * signal_weight
   total_signal_volume <- unique_signal_volume + redundant_signal_volume
-
+  
   # 2. Rebundle AIG and FSIG strictly into the Observed Generative Rank (K_roots)
   AIG <- total_signal_volume / K_roots
   core_eigenvals <- eig_vals[1:K_roots]
   p_core <- core_eigenvals / sum(core_eigenvals)
   FSIG_final <- p_core * total_signal_volume
-
+  
   elbow_label <- ifelse(interactive_mode, "User-Confirmed", "Automated Default")
-
+  
   cat("\n===================================================================================\n")
   cat(sprintf(" (FINAL) ENTROPIC SCREE METRICS (based on %s)\n", elbow_label))
   cat("===================================================================================\n")
@@ -810,14 +816,14 @@ Entropic.Scree <- function(data
   cat(" -> Structural Topology Profile (Relative to FSIG_1):\n")
   print(round(STP_final, 3))
   cat("===================================================================================\n\n")
-
+  
   # ============================================================================
   # WAVE 3: FINAL TRIPARTITE STRUCTURAL COMPOSITION
   # ============================================================================
   idiosyncratic_variance <- if (K_extended < m_valid) sum(eig_vals[(K_extended + 1):m_valid]) else 0
   idiosyncratic_weight <- idiosyncratic_variance / m_plus
   idiosyncratic_volume <- R_eff * idiosyncratic_weight
-
+  
   cat("===================================================================================\n")
   cat(sprintf(" (FINAL) TRIPARTITE STRUCTURAL COMPOSITION (Rebundling Based on K_extended = %d)\n", K_extended))
   cat("===================================================================================\n")
@@ -840,7 +846,7 @@ Entropic.Scree <- function(data
   cat("      (Structural Uncertainty + Independent Measurement Error\n")
   cat("      + Unshared Signal Geometry)\n")
   cat("===================================================================================\n\n")
-
+  
   # ============================================================================
   # WAVE 4: METHODOLOGICAL REFERENCE
   # ============================================================================
@@ -852,11 +858,11 @@ Entropic.Scree <- function(data
   cat(" -> For full methods and metric definitions, see:\n")
   cat("    The Entropic Scree (2026) - https://doi.org/10.5281/zenodo.22028087\n")
   cat("===================================================================================\n\n")
-
+  
   # ============================================================================
   # EXTENDED Factor-Specific Informational Gravity (FSIG) CALCULATIONS
   # ============================================================================
-
+  
   # --- EXTENDED MODEL A: MACRO BULK BOUNDARY ---
   top_bulk_safe <- if(!is.na(top_of_bulk_idx)) top_of_bulk_idx else valid_k
   extended_bulk_k <- max(K_extended, top_bulk_safe - 1)
@@ -864,14 +870,14 @@ Entropic.Scree <- function(data
   total_sig_vol_bulk <- (R_eff * (sig_var_bulk / m_plus)) + redundant_signal_volume
   # Rebundle gravity strictly into the Observed Generative Rank (K_roots):
   FSIG_extended_bulk <- p_core * total_sig_vol_bulk
-
+  
   # --- EXTENDED MODEL B: KAISER RULE BOUNDARY ---
   extended_kaiser_k <- max(K_extended, valid_k)
   sig_var_kaiser <- sum(eig_vals[1:extended_kaiser_k])
   total_sig_vol_kaiser <- (R_eff * (sig_var_kaiser / m_plus)) + redundant_signal_volume
   # Rebundle gravity strictly into the Observed Generative Rank (K_roots):
   FSIG_extended_kaiser <- p_core * total_sig_vol_kaiser
-
+  
   return(list(
     eigenvalues = eig_vals,
     similarity_matrix = NMI_mat_c,
