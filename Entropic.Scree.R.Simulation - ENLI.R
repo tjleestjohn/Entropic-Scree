@@ -4,7 +4,7 @@
 # Author: Terrence J. Lee-St. John
 # Organization: Enli (www.enli.com.au)
 #
-# Description: Generates a high-dimensional, mixed-type, noisy synthetic
+# Simulation Description: Generates a high-dimensional, mixed-type, noisy synthetic
 # dataset to demonstrate the systematic degradation of standard PCA, and utilizes
 # the Entropic Scree to extract the Intrinsic Generative Rank (r).
 # ==============================================================================
