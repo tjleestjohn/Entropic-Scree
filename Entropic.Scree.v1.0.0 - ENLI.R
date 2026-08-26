@@ -31,7 +31,7 @@ rm(list = ls())
 gc(verbose = FALSE)
 
 # List of all required packages (added pkgbuild for robust Rtools checking)
-required_packages <- c("Rcpp", "data.table", "infotheo", "ggplot2", "patchwork", "MASS", "stringr", "pkgbuild")
+required_packages <- c("Rcpp", "data.table", "infotheo", "ggplot2", "patchwork", "pkgbuild")
 
 # Find out which ones are missing
 missing_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
