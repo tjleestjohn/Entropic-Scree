@@ -1,3 +1,5 @@
+options(max.print = 9999999)
+
 # ==============================================================================
 # ENTROPIC SCREE Function (v1.0.0)
 #
@@ -24,11 +26,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
-options(max.print = 9999999)
-
-rm(list = ls())
-gc(verbose = FALSE)
 
 # List of all required packages (added pkgbuild for robust Rtools checking)
 required_packages <- c("Rcpp", "data.table", "infotheo", "ggplot2", "patchwork", "pkgbuild")
