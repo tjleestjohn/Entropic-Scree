@@ -394,6 +394,9 @@ Entropic.Scree <- function(data
 
   eig_vals <- pmax(raw_eig_vals, 1e-9)
 
+  # Count true positive dimensions before the geometric zero to bound plots
+  max_plot_idx <- sum(raw_eig_vals > 1e-12)
+
   # Constructive Spectral Mass (sum of positive clipped eigenvalues)
   m_plus <- sum(eig_vals)
 
@@ -623,7 +626,7 @@ Entropic.Scree <- function(data
     # ZOOMED VIEW
     max_k <- max(K_log_gap, K_triple_tap)
     zoom_start <- max(1, min(K_log_gap, K_triple_tap) - 5)
-    zoom_end <- min(length(eig_vals), max_k + 15)
+    zoom_end <- min(max_plot_idx, max_k + 15)
     plot_df_zoom <- data.frame(Rank = zoom_start:zoom_end, Eigenvalue = eig_vals[zoom_start:zoom_end])
 
     p_scree_zoom <- ggplot2::ggplot(plot_df_zoom, ggplot2::aes(x = Rank, y = Eigenvalue)) +
@@ -641,7 +644,7 @@ Entropic.Scree <- function(data
     if (!is.na(top_of_bulk_idx)) {
       macro_base <- max(macro_base, top_of_bulk_idx + 25)
     }
-    macro_end <- min(length(eig_vals), macro_base)
+    macro_end <- min(max_plot_idx, macro_base)
 
     plot_df_macro <- data.frame(Rank = 1:macro_end, Eigenvalue = eig_vals[1:macro_end])
     macro_y_max <- if(length(eig_vals) >= 2) eig_vals[2] * 1.1 else max(eig_vals)
@@ -783,7 +786,7 @@ Entropic.Scree <- function(data
 
         # 1. ZOOMED VIEW
         zoom_start_upd <- max(1, min(K_log_gap, K_triple_tap, K_roots) - 5)
-        zoom_end_upd <- min(length(eig_vals), max(K_log_gap, K_triple_tap, K_extended) + 15)
+        zoom_end_upd <- min(max_plot_idx, max(K_log_gap, K_triple_tap, K_extended) + 15)
 
         plot_df_zoom_upd <- data.frame(Rank = zoom_start_upd:zoom_end_upd, Eigenvalue = eig_vals[zoom_start_upd:zoom_end_upd])
 
@@ -802,7 +805,7 @@ Entropic.Scree <- function(data
         if (!is.na(top_of_bulk_idx)) {
           macro_base_upd <- max(macro_base_upd, top_of_bulk_idx + 25)
         }
-        macro_end_upd <- min(length(eig_vals), macro_base_upd)
+        macro_end_upd <- min(max_plot_idx, macro_base_upd)
 
         plot_df_macro_upd <- data.frame(Rank = 1:macro_end_upd, Eigenvalue = eig_vals[1:macro_end_upd])
         macro_y_max <- if(length(eig_vals) >= 2) eig_vals[2] * 1.1 else max(eig_vals)
