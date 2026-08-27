@@ -472,7 +472,7 @@ Entropic.Scree <- function(data
       }
     } else {
       # Standard Evaluation
-      search_limit <- if (!is.na(top_of_bulk_idx)) max(2, top_of_bulk_idx - 1) else length(all_log_gaps)
+      search_limit <- if (!is.na(top_of_bulk_idx)) max(2, top_of_bulk_idx - 1) else valid_k
       if (search_limit >= 2) {
         secondary_gaps <- all_log_gaps[2:search_limit]
         K_log_gap <- which.max(secondary_gaps) + 1
