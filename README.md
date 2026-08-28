@@ -19,7 +19,7 @@
 
 > **TL;DR**
 >
-> If you are working with high-dimensional, mixed-type, noisy tabular data, standard PCA fundamentally fractures non-linear dependencies into "Spurious Orthogonal Dimensions," drastically overestimating the true rank of the system. Meanwhile, non-linear alternatives like Kernel PCA and Euclidean nearest-neighbor estimators suffer structural collapse when generative roots are entangled or sparse.
+> If you are working with high-dimensional, mixed-type, noisy tabular data, standard PCA fractures non-linear dependencies into spurious orthogonal dimensions, drastically overestimating the true rank of the system. Meanwhile, non-linear alternatives like Kernel PCA and Euclidean nearest-neighbor estimators suffer structural collapse when generative roots are entangled or sparse.
 > 
 > Offered as an upgrade over these baseline methods that rely on strict assumptions about the underlying generative process, the Entropic Scree framework uses Normalized Mutual Information to collapse those spurious expansions back towards their true generative roots. By more faithfully identifying the true generative rank, the results can be used to explicitly size neural bottlenecks for downstream non-parametric manifold extractors (like autoencoders).
 > 
@@ -49,8 +49,12 @@ download.file(url, destfile = file_name)
 # 4. Source the core function into your R environment
 source(file_name)
 
-# 5. Ex. To estimate the intrinsic rank and informational gravity of your tabular dataset (dt)
-# results <- Entropic.Scree(dt)
+# 5. Ex. To estimate intrinsic rank and extract bipolar modules:
+# results <- Entropic.Scree(dt 
+#                         , extract_bipolar_modules = TRUE)
+#
+# View the extracted structural sub-networks for the primary axis:
+# print(results$bipolar_modules$Factor_1)
 ```
 ---
 
@@ -77,23 +81,23 @@ $$ \mathcal{M}_{i,j} = \frac{I(X_i; X_j)}{H(X_i) + H(X_j) - I(X_i; X_j)} $$
 Because eigendecomposition cannot operate on raw similarities, and empirical mutual information estimators suffer from a strictly positive finite-sample bias, the framework executes a
 **double-centering transformation** ($\mathcal{M}_c = \mathbf{H} \mathcal{M} \mathbf{H}$) prior to decomposition. This single operation serves a dual mathematical purpose:
 1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space, natively embedding the square root of twice the Normalized Variation of Information ($\sqrt{2 \cdot NVI}$) to ensure Positive Semi-Definiteness.
-2. It algebraically mitigates positive estimation bias, perfectly centering the macroscopic noise bulk at zero and leaving the matrix to map pure **Topological Information Variance**.
+2. It algebraically mitigates positive estimation bias, perfectly centering the macroscopic noise bulk at zero and leaving the matrix to map pure topological information variance.
 
 By utilizing a highly optimized C++ backend to evaluate this matrix, the Entropic Scree:
 * Evaluates pure shared dependency via Copula Theory (Sklar's Theorem), completely immune to marginal shape mismatches.
 * Subsumes non-linear and discrete relationships back into their root generative source.
 * Easily computes an $m \times m$ pairwise matrix regardless of sample size, utterly breaking the $N-1$ algebraic ceiling enforced by standard PCA.
 * Survives Root Entanglement: While standard non-linear baselines (like Kernel PCA) suffer structural collapse under even mild generative root entanglement, this geometry maintains a rigid, near-invariant boundary at the true generative rank.
-* Maps Structural Estrangement: Because it evaluates shared information rather than linear direction, the extracted axes physically push unrelated clusters of variables to opposite geometric poles. This allows practitioners to cleanly identify and untangle decoupled sub-networks directly from the primary factor loadings.
+* Maps Structural Estrangement via Bipolar Modules: Because it evaluates shared information rather than linear direction, the extracted axes push unrelated clusters of variables to opposite geometric poles. The codebase explicitly extracts these bipolar modules, allowing practitioners to cleanly untangle decoupled sub-networks directly from the primary factor loadings.
 
 ### The Diagnostic Framework and Automated Scanners
 Exactly like Cattell's classical variance-based scree test, the Entropic Scree is fundamentally designed as a **visual diagnostic framework**. Visual inspection of the log-linear spectral decay remains the gold standard for identifying the structural elbow that separates the generative signal from the idiosyncratic noise baseline.
 
-However, to provide an optional baseline convenience utility for rapid exploratory analysis, the script employs a Dual-Diagnostic Ensemble to automate extraction. First, it estimates a strict boundary for the macroscopic cliff (the top of the Idiosyncratic Informational Variance bulk) to ensure the search never wanders into the unstructured continuous floor. Then, operating exclusively within this bounded signal space, two complementary engines map distinct boundaries of the non-linear manifold:
+However, to provide an optional baseline convenience utility for rapid exploratory analysis, the script employs a Dual-Diagnostic Ensemble to automate extraction. First, it estimates a strict boundary for the macroscopic cliff (the top of the idiosyncratic informational variance bulk) to ensure the search never wanders into the unstructured continuous floor. Then, operating exclusively within this bounded signal space, two complementary engines map distinct boundaries of the non-linear manifold:
 
 * **Engine A (Log-Gap) isolates the Observed Generative Rank ($K_{roots}$):** Identifies the primary structural elbow by maximizing the logarithmic percentage drop between successive eigenvalues, successfully separating the core generative drivers from their own combinatorial expansions.
 
-* **Engine B (Triple-Tap) maps the Extended Signal Tail ($K_{extended}$):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 20-point linear regression to identify the exact index where the residual combinatorial signal significantly breaks out of the expected Idiosyncratic Informational Variance trajectory.
+* **Engine B (Triple-Tap) maps the Extended Signal Tail ($K_{extended}$):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 20-point linear regression to identify the exact index where the residual combinatorial signal significantly breaks out of the expected idiosyncratic informational variance trajectory.
 
 ⚠️ Automated Elbow Detection Heuristic Warning
 
@@ -109,11 +113,11 @@ Because real-world systems frequently exhibit complex internal hierarchies among
 
 The Entropic Scree doesn't just count dimensions; it calculates their exact probabilistic weight, translating abstract eigenvalues into physical **Variable Equivalents**.
 
-* **Total Unique Probabilistic Volume:** The dataset's total continuous probability volume, containing both the unique signal volume and the system's Idiosyncratic Informational Variance (Structural Uncertainty, Independent Measurement Error, and Unshared Signal Geometry).
+* **Total Unique Probabilistic Volume:** The dataset's total continuous probability volume, containing both the unique signal volume and the system's idiosyncratic informational variance (Structural Uncertainty, independent measurement error, and unshared signal geometry).
 * **Unique Signal Volume:** The specific proportion of the Total Unique Probabilistic Volume strictly controlled by the signal axes.
 * **Redundant Signal Volume:** The overlapping topological redundancy ($m - R_{eff}$) representing the signature of repeating signal axes.
 * **Total Shared Signal Volume:** The combined volume of the signal axes (the sum of the Unique and Redundant Signal Volumes).
-* **Idiosyncratic Informational Variance:** The remaining probability volume consisting of Structural Uncertainty, Independent Measurement Error, and Unshared Signal Geometry.
+* **Idiosyncratic Informational Variance:** The remaining probability volume consisting of Structural Uncertainty, independent measurement error, and unshared signal geometry.
 * **AIG (Average Informational Gravity):** How much physical data (in variable equivalents) the average extracted signal factor accounts for.
 * **FSIG (Factor-Specific Informational Gravity):** The specific structural weight of individual signal axes, allowing you to assess the ability to disentangle dominant signals from weak, secondary signals.
 * **Structural Topology Profile:** The normalized mass distribution of the complete extracted signal against the primary topological axis ($\text{FSIG}_{1-K} / \text{FSIG}_1$). This acts as a direct diagnostic of the system's macroscopic network topology, determining whether the variables form a highly centralized, entangled web or a decentralized, modular environment.
@@ -158,7 +162,7 @@ install.packages("Entropic.Scree")
 
 ## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function v1.0.0)
 
-This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ Idiosyncratic Informational Variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
+This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ idiosyncratic informational variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
 
 > ⏳ Hardware & Runtime Warning: This simulation is extremely heavy on both RAM and CPU. Generating the synthetic environment (expanding 20 generative roots into 20,000 proxies via a 21,759-term non-linear design matrix) is just as memory- and time-intensive as computing the 200 million pairwise dependencies for the final NMI matrix. A minimum of 16GB of RAM (32GB+ recommended) is strongly advised to prevent out-of-memory crashes. Depending on your hardware, generating the data and executing all four baseline models may take anywhere from 1 to 4+ hours. Step away - the script will automatically generate the final comparison plots when it finishes.
 
