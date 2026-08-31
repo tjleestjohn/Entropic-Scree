@@ -49,12 +49,12 @@ download.file(url, destfile = file_name)
 # 4. Source the core function into your R environment
 source(file_name)
 
-# 5. Ex. To estimate intrinsic rank and extract bipolar modules:
+# 5. Ex. To run the function and extract bipolar modules:
 # results <- Entropic.Scree(dt 
 #                         , extract_bipolar_modules = TRUE)
 #
 # View the extracted structural sub-networks for the primary axis:
-# print(results$bipolar_modules$Factor_1)
+# results$bipolar_modules
 ```
 ---
 
