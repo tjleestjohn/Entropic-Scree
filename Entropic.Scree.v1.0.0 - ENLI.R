@@ -1,7 +1,7 @@
 options(max.print = 9999999)
 
 # ==============================================================================
-# ENTROPIC SCREE Function (v1.0.0)
+# ENTROPIC SCREE Function (v1.0.1)
 #
 # Author: Terrence J. Lee-St. John
 # Organization: Enli (www.enli.com.au)
@@ -257,7 +257,7 @@ Entropic.Scree <- function(data
   
   start_time <- Sys.time()
   dt <- data.table::copy(data)
- 
+  
   # ----------------------------------------------------------------------------
   # [0/9] INITIAL DIMENSION CHECK
   # ----------------------------------------------------------------------------
@@ -442,12 +442,27 @@ Entropic.Scree <- function(data
     
     if(length(noise_tail_idx) > 0) {
       noise_gaps <- all_gaps_diag[noise_tail_idx]
-      max_noise_gap <- max(noise_gaps)
+      # Calculate the baseline volatility of the noise tail, ignoring extreme secondary cliffs
+      q_noise <- quantile(noise_gaps, c(0.25, 0.75), names = FALSE)
+      iqr_noise <- q_noise[2] - q_noise[1]
+      upper_fence <- q_noise[2] + 1.5 * iqr_noise
+      
+      # Filter out outlier gaps (the secondary cliffs) to find the true noise floor
+      typical_noise_gaps <- noise_gaps[noise_gaps <= upper_fence]
+      
+      if (length(typical_noise_gaps) > 0) {
+        max_noise_gap <- max(typical_noise_gaps)
+      } else {
+        max_noise_gap <- median(noise_gaps)
+      }
       
       macro_multiplier <- 1.5
       gap_threshold <- max(1e-6, max_noise_gap * macro_multiplier)
       
-      macroscopic_gap_indices <- which(all_gaps_diag > gap_threshold)
+      # Restrict the search space to prevent triggering on outliers INSIDE the noise tail
+      valid_macro_search_idx <- 1:(noise_start_idx - 1)
+      
+      macroscopic_gap_indices <- which(all_gaps_diag[valid_macro_search_idx] > gap_threshold)
       if (length(macroscopic_gap_indices) > 0) {
         top_of_bulk_idx <- max(macroscopic_gap_indices) + 1
         macro_max_bulk_gap <- max_noise_gap
@@ -509,11 +524,11 @@ Entropic.Scree <- function(data
   # ==========================================================================
   # STEP 3: ENGINE B - TRIPLE-TAP (DYNAMIC LINEAR WITH MACRO-STITCH)
   # ==========================================================================
-
-  # Dynamically scale window: 10% of valid variables, bounded between 4 and user-input (default 20)
+  
+  # Dynamically scale window: 10% of valid variables, bounded between 5 and user-input (default 20)
   dynamic_window <- floor(0.10 * m_valid)
-  triple_tap_window <- max(4, min(as.integer(triple_tap_window), dynamic_window))
-                              
+  triple_tap_window <- max(5, min(as.integer(triple_tap_window), dynamic_window))
+  
   K_triple_tap <- NA_integer_
   triple_tap_multiplier <- NA_real_
   triple_tap_actual_sigma <- NA_real_
@@ -535,15 +550,15 @@ Entropic.Scree <- function(data
     }
     
     # 2. Dynamically scale sigma using t-dist to target a family-wise false positive rate of 1/100
-    # Bonferroni correction: alpha = 0.01 / number of tests (search_start_idx)
-    prob_target <- 1 - (1 / (100 * search_start_idx))
+    # Bonferroni correction: alpha = 0.05 / number of tests (search_start_idx)
+    prob_target <- 1 - (0.05 / search_start_idx)
     
     # Pre-compute design matrix for the dynamic reference window - LINEAR ONLY
     x_ref <- 0:(triple_tap_window - 1)
     X_mat <- cbind(1, x_ref)
     
-    # Scan backwards from the top of the bounded space down to 1
-    for (i in seq(search_start_idx, 1, by = -1)) {
+    # Scan backwards from the top of the bounded space down to K_log_gap
+    for (i in seq(search_start_idx, K_log_gap, by = -1)) {
       target_val <- stitched_eig_vals[i]
       
       # Reference window: next N eigenvalues to calculate linear expectation
@@ -612,7 +627,7 @@ Entropic.Scree <- function(data
   
   # Safely capture the multiplier for the printout if it never broke but we had space
   if (is.na(triple_tap_multiplier) && search_start_idx >= 3) {
-    triple_tap_multiplier <- max(2.0, qt(1 - (1 / (100 * search_start_idx)), df = triple_tap_window - 2))
+    triple_tap_multiplier <- max(2.0, qt(1 - (0.05 / search_start_idx), df = triple_tap_window - 2))
   }
   
   # ============================================================================
@@ -949,7 +964,7 @@ Entropic.Scree <- function(data
   # WAVE 4: METHODOLOGICAL REFERENCE
   # ============================================================================
   cat("===================================================================================\n")
-  cat(" ENTROPIC SCREE (v1.0.0) - METHODOLOGICAL REFERENCE & LICENSE\n")
+  cat(" ENTROPIC SCREE (v1.0.1) - METHODOLOGICAL REFERENCE & LICENSE\n")
   cat("===================================================================================\n")
   cat(" -> Framework developed by Terrence J. Lee-St. John (Enli)\n")
   cat(" -> Released under the Apache License 2.0 (Open Source)\n")
