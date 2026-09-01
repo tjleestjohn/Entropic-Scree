@@ -160,7 +160,7 @@ install.packages("Entropic.Scree")
 
 ---
 
-## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function v1.0.0)
+## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function v1.0.0 beta)
 
 This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ idiosyncratic informational variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
 
