@@ -257,10 +257,7 @@ Entropic.Scree <- function(data
   
   start_time <- Sys.time()
   dt <- data.table::copy(data)
-  
-  # Enforce a minimum window size of 3 for linear regression (df >= 1)
-  triple_tap_window <- max(3, as.integer(triple_tap_window))
-  
+ 
   # ----------------------------------------------------------------------------
   # [0/9] INITIAL DIMENSION CHECK
   # ----------------------------------------------------------------------------
@@ -512,6 +509,11 @@ Entropic.Scree <- function(data
   # ==========================================================================
   # STEP 3: ENGINE B - TRIPLE-TAP (DYNAMIC LINEAR WITH MACRO-STITCH)
   # ==========================================================================
+
+  # Dynamically scale window: 10% of valid variables, bounded between 4 and user-input (default 20)
+  dynamic_window <- floor(0.10 * m_valid)
+  triple_tap_window <- max(4, min(as.integer(triple_tap_window), dynamic_window))
+                              
   K_triple_tap <- NA_integer_
   triple_tap_multiplier <- NA_real_
   triple_tap_actual_sigma <- NA_real_
