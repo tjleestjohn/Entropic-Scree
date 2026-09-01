@@ -3,7 +3,7 @@ rm(list = ls())
 gc(verbose = FALSE)
 
 # ==============================================================================
-# ENTROPIC SCREE Function (v1.0.0)
+# ENTROPIC SCREE Function (v1.0.0 beta)
 #
 # Author: Terrence J. Lee-St. John
 # Organization: Enli (www.enli.com.au)
@@ -949,7 +949,7 @@ Entropic.Scree <- function(data
   # WAVE 4: METHODOLOGICAL REFERENCE
   # ============================================================================
   cat("===================================================================================\n")
-  cat(" ENTROPIC SCREE (v1.0.0) - METHODOLOGICAL REFERENCE & LICENSE\n")
+  cat(" ENTROPIC SCREE (v1.0.0 beta) - METHODOLOGICAL REFERENCE & LICENSE\n")
   cat("===================================================================================\n")
   cat(" -> Framework developed by Terrence J. Lee-St. John (Enli)\n")
   cat(" -> Released under the Apache License 2.0 (Open Source)\n")
