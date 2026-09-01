@@ -30,18 +30,18 @@
 >
 > Ultimately, it provides a non-parametric, distribution-free diagnostic whose comparative advantage compounds at scale and with system complexity.
 
-## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function v1.0.0 (R)
+## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function v1.0.1 (R)
 
-While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree Function v1.0.0 in R immediately by sourcing the standalone function file.
+While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree Function v1.0.1 in R immediately by sourcing the standalone function file.
 
 Just copy and paste the following block into your R console (and press Enter) to automatically download and load the Entropic.Scree() function into your R environment:
 
 ```R
 # 1. Define the direct URL to the raw function script on GitHub
-url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.v1.0.0%20-%20ENLI.R"
+url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.v1.0.1%20-%20ENLI.R"
 
 # 2. Define what you want to name the file on your computer
-file_name <- "Entropic.Scree.v1.0.0 - ENLI.R"
+file_name <- "Entropic.Scree.v1.0.1 - ENLI.R"
 
 # 3. Download the script to your current working directory
 download.file(url, destfile = file_name)
@@ -53,7 +53,7 @@ source(file_name)
 # results <- Entropic.Scree(dt 
 #                         , extract_bipolar_modules = TRUE)
 #
-# View the extracted structural sub-networks for the primary axis:
+# View the extracted structural sub-networks for the primary axes:
 # results$bipolar_modules
 ```
 ---
