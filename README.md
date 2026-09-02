@@ -38,10 +38,10 @@ Just copy and paste the following block into your R console (and press Enter) to
 
 ```R
 # 1. Define the direct URL to the raw function script on GitHub
-url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.v1.0.1%20-%20ENLI.R"
+url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R%20-%20ENLI.R"
 
 # 2. Define what you want to name the file on your computer
-file_name <- "Entropic.Scree.v1.0.1 - ENLI.R"
+file_name <- "Entropic.Scree.R - ENLI.R"
 
 # 3. Download the script to your current working directory
 download.file(url, destfile = file_name)
