@@ -1016,6 +1016,10 @@ Entropic.Scree <- function(data
       # Extract the extreme negative anchor (structural estrangement)
       neg_pole <- sort(loadings[loadings < 0], decreasing = FALSE)
       neg_pole <- head(neg_pole, resolved_top_n)
+      
+      bipolar_modules_out[[paste0("Factor_", k)]] <- list(
+        Positive_Anchor = pos_pole,
+        Negative_Anchor = neg_pole
       )
     }
   }
