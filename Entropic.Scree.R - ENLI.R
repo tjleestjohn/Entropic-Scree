@@ -242,7 +242,7 @@ Entropic.Scree <- function(data
                            , triple_tap_window = 20
                            , extract_eigenvectors = FALSE
                            , extract_bipolar_modules = FALSE
-                           , bipolar_top_n = 10
+                           , bipolar_top_n = 0.20
                            , return_processed_data = FALSE) {
   
   # Enforce data.table requirement
@@ -998,21 +998,24 @@ Entropic.Scree <- function(data
   if (extract_bipolar_modules && !is.null(vectors_out) && K_roots > 0) {
     bipolar_modules_out <- list()
     
+    # Dynamically resolve top N (proportion vs absolute count)
+    resolved_top_n <- if (bipolar_top_n > 0 && bipolar_top_n < 1) {
+      max(1, floor(bipolar_top_n * m_valid))
+    } else {
+      max(1, as.integer(bipolar_top_n))
+    }
+    
     for (k in 1:K_roots) {
       # Bind variable names to the specific eigenvector
       loadings <- setNames(vectors_out[, k], valid_vars)
       
       # Extract the extreme positive anchor
       pos_pole <- sort(loadings[loadings > 0], decreasing = TRUE)
-      pos_pole <- head(pos_pole, bipolar_top_n)
+      pos_pole <- head(pos_pole, resolved_top_n)
       
       # Extract the extreme negative anchor (structural estrangement)
       neg_pole <- sort(loadings[loadings < 0], decreasing = FALSE)
-      neg_pole <- head(neg_pole, bipolar_top_n)
-      
-      bipolar_modules_out[[paste0("Factor_", k)]] <- list(
-        Positive_Anchor = pos_pole,
-        Negative_Anchor = neg_pole
+      neg_pole <- head(neg_pole, resolved_top_n)
       )
     }
   }
