@@ -445,7 +445,7 @@ Entropic.Scree <- function(data
       # Calculate the baseline volatility of the noise tail, ignoring extreme secondary cliffs
       q_noise <- quantile(noise_gaps, c(0.25, 0.75), names = FALSE)
       iqr_noise <- q_noise[2] - q_noise[1]
-      upper_fence <- q_noise[2] + 1.5 * iqr_noise
+      upper_fence <- q_noise[2] + 3.0 * iqr_noise
       
       # Filter out outlier gaps (the secondary cliffs) to find the true noise floor
       typical_noise_gaps <- noise_gaps[noise_gaps <= upper_fence]
