@@ -437,7 +437,7 @@ Entropic.Scree <- function(data
   if (length(valid_search_space) > 10) {
     all_gaps_diag <- abs(diff(valid_search_space))
     n_active <- length(valid_search_space)
-    noise_start_idx <- min(valid_k + max(3, floor(n_active * 0.05)), n_active - 5)
+    noise_start_idx <- min(valid_k + max(3, floor(n_active * 0.10)), n_active - 5)
     noise_tail_idx <- noise_start_idx:(n_active - 1)
     
     if(length(noise_tail_idx) > 0) {
