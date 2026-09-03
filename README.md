@@ -32,29 +32,39 @@
 
 ## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function v1.0.1 (R)
 
-While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree Function v1.0.1 in R immediately by sourcing the standalone function file.
+While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree v1.0.1 suite in R immediately by sourcing the standalone function files.
 
-Just copy and paste the following block into your R console (and press Enter) to automatically download and load the Entropic.Scree() function into your R environment:
+Just copy and paste the following block into your R console (and press Enter) to automatically download and load both the core Entropic.Scree() function and the Update.Entropic.Scree() companion function into your R environment:
 
 ```R
-# 1. Define the direct URL to the raw function script on GitHub
-url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R%20-%20ENLI.R"
+# 1. Define the direct URLs to the raw function scripts on GitHub
+main_url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R%20-%20ENLI.R"
+update_url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Update.Entropic.Scree.R%20-%20ENLI.R"
 
-# 2. Define what you want to name the file on your computer
-file_name <- "Entropic.Scree.R - ENLI.R"
+# 2. Define what you want to name the files on your computer
+main_file <- "Entropic.Scree.R - ENLI.R"
+update_file <- "Update.Entropic.Scree.R - ENLI.R"
 
-# 3. Download the script to your current working directory
-download.file(url, destfile = file_name)
+# 3. Download the scripts to your current working directory
+download.file(main_url, destfile = main_file)
+download.file(update_url, destfile = update_file)
 
-# 4. Source the core function into your R environment
-source(file_name)
+# 4. Source both functions into your R environment
+source(main_file)
+source(update_file)
 
-# 5. Ex. To run the function and extract bipolar modules:
-# results <- Entropic.Scree(dt 
-#                         , extract_bipolar_modules = TRUE)
+# 5. Example Execution:
+#
+# Run the core function and extract bipolar modules:
+# results <- Entropic.Scree(dt, extract_bipolar_modules = TRUE)
 #
 # View the extracted structural sub-networks for the primary axes:
 # results$bipolar_modules
+#
+# Post-Hoc Override (Optional): 
+# If you want to manually adjust the elbow ranks after reviewing the scree plot, 
+# pass your results object into the Update function to instantly recalculate all metrics:
+# updated_results <- Update.Entropic.Scree(results, new_K_roots = 3, new_K_extended = 12)
 ```
 ---
 
