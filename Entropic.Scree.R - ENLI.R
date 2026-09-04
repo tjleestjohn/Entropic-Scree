@@ -240,6 +240,7 @@ Entropic.Scree <- function(data
                            , purge_constants = TRUE
                            , check_collinearity = TRUE
                            , triple_tap_window = 20
+                           , fwer_alpha = 0.01
                            , extract_eigenvectors = FALSE
                            , extract_bipolar_modules = FALSE
                            , bipolar_top_n = 0.20
@@ -550,8 +551,8 @@ Entropic.Scree <- function(data
     }
     
     # 2. Dynamically scale sigma using t-dist to target a family-wise false positive rate of 1/100
-    # Bonferroni correction: alpha = 0.001 / number of tests (search_start_idx)
-    prob_target <- 1 - (0.001 / search_start_idx)
+    # Bonferroni correction: alpha = fwer_alpha / number of tests (search_start_idx)
+    prob_target <- 1 - (fwer_alpha / search_start_idx)
     
     # Pre-compute design matrix for the dynamic reference window - LINEAR ONLY
     x_ref <- 0:(triple_tap_window - 1)
@@ -627,7 +628,7 @@ Entropic.Scree <- function(data
   
   # Safely capture the multiplier for the printout if it never broke but we had space
   if (is.na(triple_tap_multiplier) && search_start_idx >= 3) {
-    triple_tap_multiplier <- max(2.0, qt(1 - (0.001 / search_start_idx), df = triple_tap_window - 2))
+    triple_tap_multiplier <- max(2.0, qt(1 - (fwer_alpha / search_start_idx), df = triple_tap_window - 2))
   }
   
   # ============================================================================
