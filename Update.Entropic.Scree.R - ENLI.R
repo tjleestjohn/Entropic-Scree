@@ -164,7 +164,7 @@ Update.Entropic.Scree <- function(scree_obj, new_K_roots = NULL, new_K_extended 
   cat("===================================================================================\n\n")
 
   cat("===================================================================================\n")
-  cat(" ENTROPIC SCREE (v1.0.1) - METHODOLOGICAL REFERENCE & LICENSE\n")
+  cat(" ENTROPIC SCREE (1.0.1 beta) - METHODOLOGICAL REFERENCE & LICENSE\n")
   cat("===================================================================================\n")
   cat(" -> Framework developed by Terrence J. Lee-St. John (Enli)\n")
   cat(" -> Released under the Apache License 2.0 (Open Source)\n")
