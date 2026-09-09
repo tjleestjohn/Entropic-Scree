@@ -183,5 +183,5 @@ Update.Entropic.Scree <- function(scree_obj, new_K_roots = NULL, new_K_extended 
   scree_obj$structural_topology_profile <- STP_final
   scree_obj$bipolar_modules <- bipolar_modules_out
   
-  return(scree_obj)
+  return(invisible(scree_obj))
 }
