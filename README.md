@@ -30,9 +30,9 @@
 >
 > Ultimately, it provides a non-parametric, distribution-free diagnostic whose comparative advantage compounds at scale and with system complexity.
 
-## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function v1.0.1 (R)
+## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function 1.0.1 beta (R)
 
-While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree v1.0.1 suite in R immediately by sourcing the standalone function files.
+While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree 1.0.1 beta suite in R immediately by sourcing the standalone function files.
 
 Just copy and paste the following block into your R console (and press Enter) to automatically download and load both the core Entropic.Scree() function and the Update.Entropic.Scree() companion function into your R environment:
 
@@ -170,7 +170,7 @@ install.packages("Entropic.Scree")
 
 ---
 
-## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function v1.0.0 beta)
+## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function 1.0.0 beta)
 
 This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ idiosyncratic informational variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
 
