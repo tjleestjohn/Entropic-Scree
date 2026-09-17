@@ -9,12 +9,12 @@
 **Links**
 
 [![Read Preprint](https://img.shields.io/badge/Read_Preprint-Zenodo-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.22028087)
+[![CRAN](https://img.shields.io/badge/CRAN-v1.0.1-blue?style=for-the-badge)](https://cran.r-project.org/package=Entropic.Scree)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/entropic-scree/blob/main/LICENSE)
 
 <p align="center">
-  <a href="#-quick-start-function"><strong>Quick Start R Function ⚡</strong></a><br>
-  <a href="#-usage-r-script"><strong>R Simulation Script 💻</strong></a><br>
-  <a href="#-installation"><strong>Python and R Packages 📦 (Coming Soon)</strong></a>
+  <a href="#-package-installation"><strong>R and Python Package Installation 📦</strong></a><br>
+  <a href="#-usage-r-script"><strong>R Simulation Script 💻</strong></a>
 </p>
 
 > **TL;DR**
@@ -30,42 +30,40 @@
 >
 > Ultimately, it provides a non-parametric, distribution-free diagnostic whose comparative advantage compounds at scale and with system complexity.
 
-## <a id="-quick-start-function"></a>Quick Start - Entropic Scree Function 1.0.1 beta (R)
+## <a id="-package-installation"></a>📦 R and Python Package Installation
 
-While the official CRAN and PyPI packages are under active development, you can use the Entropic Scree 1.0.1 beta suite in R immediately by sourcing the standalone function files.
+### R (CRAN)
 
-Just copy and paste the following block into your R console (and press Enter) to automatically download and load both the core Entropic.Scree() function and the Update.Entropic.Scree() companion function into your R environment:
+The official `Entropic.Scree` package is now live on CRAN, complete with an OpenMP-accelerated C++ backend for high-dimensional performance:
 
 ```R
-# 1. Define the direct URLs to the raw function scripts on GitHub
-main_url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R%20-%20ENLI.R"
-update_url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Update.Entropic.Scree.R%20-%20ENLI.R"
+install.packages("Entropic.Scree")
+library(Entropic.Scree)
+library(data.table)
 
-# 2. Define what you want to name the files on your computer
-main_file <- "Entropic.Scree.R - ENLI.R"
-update_file <- "Update.Entropic.Scree.R - ENLI.R"
+# Example...
+# The input dataset must be a raw data.table object (not a correlation matrix)
+# dt <- as.data.table(your_dataset)
 
-# 3. Download the scripts to your current working directory
-download.file(main_url, destfile = main_file)
-download.file(update_url, destfile = update_file)
-
-# 4. Source both functions into your R environment
-source(main_file)
-source(update_file)
-
-# 5. Example Execution:
-#
-# Run the core function and extract bipolar modules:
+# Run the core diagnostic and extract structural sub-networks:
 # results <- Entropic.Scree(dt, extract_bipolar_modules = TRUE)
-#
-# View the extracted structural sub-networks for the primary axes:
+
+# View extracted bipolar clusters / sub-networks:
 # results$bipolar_modules
-#
-# Post-Hoc Override (Optional): 
-# If you want to manually adjust the elbow ranks after reviewing the scree plot, 
-# pass your results object into the Update function to instantly recalculate all metrics:
+
+# Post-Hoc Override (Optional):
+# If you wish to manually adjust the elbow ranks after reviewing the scree plot:
 # updated_results <- Update.Entropic.Scree(results, new_K_roots = 3, new_K_extended = 12)
 ```
+
+### Python (PyPI - Coming Soon)
+
+*The native Python package is currently in active development and will be released shortly:*
+
+```bash
+pip install Entropic-Scree
+```
+
 ---
 
 ## Structural Constraints of Linear Estimators
@@ -154,22 +152,6 @@ Do not attempt to project your raw data onto the extracted eigenvectors via a st
 
 ---
 
-## <a id="-installation"></a>📦 Python and R Package Installation (Coming Soon)
-
-*Native packages for Python (via PyPI) and R (via CRAN) are currently in active development and will be released shortly.*
-
-**For Python (Coming Soon):**
-```bash
-pip install Entropic-Scree
-```
-
-**For R (Coming Soon):**
-```R
-install.packages("Entropic.Scree")
-```
-
----
-
 ## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function 1.0.0 beta)
 
 This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ idiosyncratic informational variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
@@ -186,7 +168,7 @@ Just copy and paste the following block into your R console (and press Enter) to
 
 ```R
 # 1. Define the direct URL to the raw script on GitHub
-url <- "https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R.Simulation%20-%20ENLI.R"
+url <- "[https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R.Simulation%20-%20ENLI.R](https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R.Simulation%20-%20ENLI.R)"
 
 # 2. Define what you want to name the file on your computer
 file_name <- "Entropic.Scree.R.Simulation - ENLI.R"
@@ -215,7 +197,7 @@ The full methodology is formally presented in Zenodo Preprint.
   author={Lee-St. John, Terrence J.},
   publisher={Zenodo},
   doi={10.5281/zenodo.22028087},
-  url={https://doi.org/10.5281/zenodo.22028087},
+  url={[https://doi.org/10.5281/zenodo.22028087](https://doi.org/10.5281/zenodo.22028087)},
   year={2026}
 }
 ```
