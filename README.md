@@ -71,6 +71,10 @@ Version 1.0.1 requires complete prepared records and a bin target at least as la
 
 The package checks for constant and duplicate columns and, where applicable, linear collinearity. Identical discretized columns and columns below the marginal-entropy threshold are also removed. These later checks remain active when the initial purge and collinearity options are disabled. In the formulas below, $m$ is the **retained** measurement count.
 
+## Python package — coming soon
+
+A native Python package is in development. Installation instructions and a PyPI link will be added here when it is released. In the meantime, the published R package is available through CRAN.
+
 ## Why distinguish linear dimension from generating dimension?
 
 PCA describes linear representational structure. Its limitations become important when its selected dimension is interpreted as a count of generating mechanisms:
