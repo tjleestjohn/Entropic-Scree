@@ -2,210 +2,289 @@
 
 ###### Initial Methods & Function Release: August 16, 2026 (Happy Birthday, Dad)
 
-*[Terrence J. Lee-St. John, PhD](mailto:terry@enli.com.au)*
-
+*[Terrence J. Lee-St. John, PhD](mailto:terry@enli.com.au)*  
 *[Enli: Predictive systems that remain stable under change](https://www.enli.com.au)*
 
-**Links**
-
 [![Read Preprint](https://img.shields.io/badge/Read_Preprint-Zenodo-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.22028087)
-[![CRAN](https://img.shields.io/badge/CRAN-v1.0.1-blue?style=for-the-badge)](https://cran.r-project.org/package=Entropic.Scree)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/entropic-scree/blob/main/LICENSE)
+[![CRAN](https://img.shields.io/badge/CRAN-v1.0.1-blue?style=for-the-badge)](https://CRAN.R-project.org/package=Entropic.Scree)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/Entropic-Scree/blob/main/LICENSE)
 
-<p align="center">
-  <a href="#-package-installation"><strong>R and Python Package Installation 📦</strong></a><br>
-  <a href="#-usage-r-script"><strong>R Simulation Script 💻</strong></a>
-</p>
+**[Install the R package](#r-package-installation) · [Understand the information map](#an-information-map-of-measurements) · [Run the simulations](#simulation-code)**
 
-> **TL;DR**
+> **At a glance**
 >
-> If you are working with high-dimensional, mixed-type, noisy tabular data, standard PCA fractures non-linear dependencies into spurious orthogonal dimensions, drastically overestimating the true rank of the system. Meanwhile, non-linear alternatives like Kernel PCA and Euclidean nearest-neighbor estimators suffer structural collapse when generative roots are entangled or sparse.
-> 
-> Offered as an upgrade over these baseline methods that rely on strict assumptions about the underlying generative process, the Entropic Scree framework uses Normalized Mutual Information to collapse those spurious expansions back towards their true generative roots. By more faithfully identifying the true generative rank, the results can be used to explicitly size neural bottlenecks for downstream non-parametric manifold extractors (like autoencoders).
-> 
-> The Entropic Scree also:
-> * Quantifies the underlying "informational gravity" of the roots, offering insight into the system's overall average stability, as well as the relative informational dominance of individual roots;
-> * Estimates the data's overall ratio of shared signal to unshared idiosyncratic informational variance (noise);
-> * Serves as a powerful exploratory map that separates unrelated clusters of variables, allowing you to easily identify decoupled sub-networks.
+> A small number of generating processes can produce many nonlinear, thresholded and categorical measurements. Those measurements may require many directions for linear representation, even when they share a much smaller generating system.
 >
-> Ultimately, it provides a non-parametric, distribution-free diagnostic whose comparative advantage compounds at scale and with system complexity.
+> **Entropic Scree maps relationships among measurements using normalized mutual information.** Its spectrum supports selection of a primary informational rank and an Extended Signal Tail; its loadings describe bipolar groups of observed measurements; and its gravity metrics summarize the allocation of informational volume.
+>
+> In the paper's main synthetic experiment, the selected primary boundary matched the 20 generating coordinates, whereas the evaluated PCA, rank-PCA and RBF Kernel PCA diagnostics did not give the same selection. The framework combines this dimensional diagnostic with an interpretable map of the measurements' informational organization.
 
-## <a id="-package-installation"></a>📦 R and Python Package Installation
+## R package installation
 
-### R (CRAN)
+The published implementation is **`Entropic.Scree` 1.0.1**, available through [CRAN](https://CRAN.R-project.org/package=Entropic.Scree). It provides a compiled Rcpp/C++ backend with OpenMP parallelism where supported by the build and platform.
 
-The official `Entropic.Scree` package is now live on CRAN, complete with an OpenMP-accelerated C++ backend for high-dimensional performance:
-
-```R
+```r
 install.packages("Entropic.Scree")
 library(Entropic.Scree)
 library(data.table)
 
-# Example...
-# The input dataset must be a raw data.table object (not a correlation matrix)
-# dt <- as.data.table(your_dataset)
+# Supply observations in rows and measurements in columns.
+# The input must be a data.table, not a correlation matrix.
+dt <- as.data.table(your_dataset)
 
-# Run the core diagnostic and extract structural sub-networks:
-# results <- Entropic.Scree(dt, extract_bipolar_modules = TRUE)
+# Encode nominal measurements as factors or character columns.
+# For example: dt[, diagnosis := factor(diagnosis)]
 
-# View extracted bipolar clusters / sub-networks:
-# results$bipolar_modules
+results <- Entropic.Scree(
+  dt,
+  interactive_mode = TRUE,
+  extract_bipolar_modules = TRUE
+)
 
-# Post-Hoc Override (Optional):
-# If you wish to manually adjust the elbow ranks after reviewing the scree plot:
-# updated_results <- Update.Entropic.Scree(results, new_K_roots = 3, new_K_extended = 12)
+# Review the selected boundaries, allocations and pole coefficients.
+results$K_roots
+results$K_extended
+results$AIG
+results$FSIG_final
+results$bipolar_modules
+
+# Optional: revise boundaries after inspecting the spectrum.
+# Choose values appropriate to the spectrum of your own dataset.
+# updated_results <- Update.Entropic.Scree(
+#   results, new_K_roots = 3, new_K_extended = 12
+# )
 ```
 
-### Python (PyPI - Coming Soon)
+The interactive interface permits review and revision of the automatic recommendations. Set `interactive_mode = FALSE` for unattended execution. `Update.Entropic.Scree()` recalculates rank-dependent summaries without repeating pairwise MI estimation or eigendecomposition.
 
-*The native Python package is currently in active development and will be released shortly:*
+See the [package reference manual](https://stat.ethz.ch/CRAN/web/packages/Entropic.Scree/refman/Entropic.Scree.html) for arguments and returned fields.
 
-```bash
-pip install Entropic-Scree
-```
+### Preparing mixed data
 
----
+Continuous measurements are discretized into equal-frequency categories. The default target is
 
-## Structural Constraints of Linear Estimators
+$$B=\max\{2,\lceil cN^{1/3}\rceil\},$$
 
-For over a century, the universal standard for evaluating a dataset's representational rank has been PCA and its variance-based scree plot. However, when deployed in modern, complex data environments, standard linear matrices systematically degrade across four dimensions:
+where `bin_multiplier` supplies $c$ and defaults to one; `num_bins` can specify the target directly. Numeric columns with no more than the target number of distinct values are encoded by state. Nominal numeric labels should be explicitly represented as categorical columns.
 
-1. **Mixed-Data Penalty:** Linear correlation deflates when continuous waves are evaluated against discrete categorical step-functions.
-2. **Non-Linear Blindness:** Pure linear estimators ignore synergistic, thresholded, or polynomial dependencies.
-3. **The Algebraic Rank Constraint:** If you have more variables than observations ($m > N$), PCA hits a hard algebraic wall, permanently capping extractable rank at $N-1$.
-4. **Spurious Orthogonalization (Dimensional Inflation):** Because linear matrices cannot map non-linear states, they fragment continuous generative drivers into hundreds of spurious, independent linear dimensions. Because this fragmentation multiplies combinatorially as predictor breadth ($m$) grows, classical matrices catastrophically fracture at scale.
+Version 1.0.1 requires complete prepared records and a bin target at least as large as every categorical column's number of encoded states. If necessary, increase `num_bins`; this also changes the resolution target for continuous measurements. Resolve missing values deliberately before analysis.
 
-**The Result:** PCA tells you your data is driven by hundreds of weak linear components, when it is actually driven by a smaller set of highly non-linear, robust macro-structures.
+The package checks for constant and duplicate columns and, where applicable, linear collinearity. Identical discretized columns and columns below the marginal-entropy threshold are also removed. These later checks remain active when the initial purge and collinearity options are disabled. In the formulas below, $m$ is the **retained** measurement count.
 
-## The Solution: Information-Theoretic Geometry
+## Why distinguish linear dimension from generating dimension?
 
-The Entropic Scree methodology resolves this by shifting the math from linear Euclidean space into topological information space.
+PCA describes linear representational structure. Its limitations become important when its selected dimension is interpreted as a count of generating mechanisms:
 
-To guarantee global geometric coherence and enforce a strict metric space, the framework constructs a pairwise Normalized Mutual Information (NMI) matrix utilizing Information-Theoretic Jaccard Similarity:
+1. **Mixed measurement forms:** A continuous measurement and its deterministic threshold need not have unit Pearson correlation. Their linear association depends on the threshold and marginal distribution.
+2. **Nonlinear dependence:** Zero covariance does not imply independence. For symmetric $X$ with suitable moments, $X$ and $X^2$ have zero covariance despite their deterministic relationship.
+3. **The sample-covariance rank ceiling:** A centered $N\times m$ data matrix has covariance rank at most $\min(m,N-1)$.
+4. **Linear representational expansion:** Different functions of one generating variable can span several linear directions. For standard-normal $X$, the functions $X$, $X^2-1$ and $X^3-3X$ are mutually uncorrelated, although all are generated by the same $X$.
 
-$$ \mathcal{M}_{i,j} = \frac{I(X_i; X_j)}{H(X_i) + H(X_j) - I(X_i; X_j)} $$
+These are substantive reasons to examine an information-based representation. PCA can correctly describe a large linear span without that span representing equally many independent causes.
 
-### Double-Centering Bias Correction (cMDS)
-Because eigendecomposition cannot operate on raw similarities, and empirical mutual information estimators suffer from a strictly positive finite-sample bias, the framework executes a
-**double-centering transformation** ($\mathcal{M}_c = \mathbf{H} \mathcal{M} \mathbf{H}$) prior to decomposition. This single operation serves a dual mathematical purpose:
-1. It safely converts the distance manifold into a coordinate-ready inner-product (Gram) space, natively embedding the square root of twice the Normalized Variation of Information ($\sqrt{2 \cdot NVI}$) to ensure Positive Semi-Definiteness.
-2. It algebraically mitigates positive estimation bias, perfectly centering the macroscopic noise bulk at zero and leaving the matrix to map pure topological information variance.
+Distance-based neighborhood methods address a different object: the geometry of observations. Under distance-concentration conditions, nearest and farthest distances lose relative contrast, weakening neighborhood-based inference. Entropic Scree instead compares measurements through their information relationships across observations, avoiding the need to place nominal category codes and continuous magnitudes on one sample-distance scale.
 
-By utilizing a highly optimized C++ backend to evaluate this matrix, the Entropic Scree:
-* Evaluates pure shared dependency via Copula Theory (Sklar's Theorem), completely immune to marginal shape mismatches.
-* Subsumes non-linear and discrete relationships back into their root generative source.
-* Easily computes an $m \times m$ pairwise matrix regardless of sample size, utterly breaking the $N-1$ algebraic ceiling enforced by standard PCA.
-* Survives Root Entanglement: While standard non-linear baselines (like Kernel PCA) suffer structural collapse under even mild generative root entanglement, this geometry maintains a rigid, near-invariant boundary at the true generative rank.
-* Maps Structural Estrangement via Bipolar Modules: Because it evaluates shared information rather than linear direction, the extracted axes push unrelated clusters of variables to opposite geometric poles. The codebase explicitly extracts these bipolar modules, allowing practitioners to cleanly untangle decoupled sub-networks directly from the primary factor loadings.
+## An information map of measurements
 
-### The Diagnostic Framework and Automated Scanners
-Exactly like Cattell's classical variance-based scree test, the Entropic Scree is fundamentally designed as a **visual diagnostic framework**. Visual inspection of the log-linear spectral decay remains the gold standard for identifying the structural elbow that separates the generative signal from the idiosyncratic noise baseline.
+**Each point in the map is a measurement, not an observation.** The framework asks which measurements retain overlapping information and how their relationships are organized across the dataset.
 
-However, to provide an optional baseline convenience utility for rapid exploratory analysis, the script employs a Dual-Diagnostic Ensemble to automate extraction. First, it estimates a strict boundary for the macroscopic cliff (the top of the idiosyncratic informational variance bulk) to ensure the search never wanders into the unstructured continuous floor. Then, operating exclusively within this bounded signal space, two complementary engines map distinct boundaries of the non-linear manifold:
+For discrete or discretized measurements, the similarity is mutual information normalized by joint entropy:
 
-* **Engine A (Log-Gap) isolates the Observed Generative Rank ($K_{roots}$):** Identifies the primary structural elbow by maximizing the logarithmic percentage drop between successive eigenvalues, successfully separating the core generative drivers from their own combinatorial expansions.
+$$\mathcal M_{ij}=\frac{I(X_i;X_j)}{H(X_i,X_j)}
+=\frac{I(X_i;X_j)}{H(X_i)+H(X_j)-I(X_i;X_j)}.$$
 
-* **Engine B (Triple-Tap) maps the Extended Signal Tail ($K_{extended}$):** Applies a "Topological Stitch" to mathematically close the macro gap, then scans backward using a dynamically scaled 20-point linear regression to identify the exact index where the residual combinatorial signal significantly breaks out of the expected idiosyncratic informational variance trajectory.
+This measures shared information relative to joint information. Zero denotes independence of the represented discrete variables; one denotes informational equivalence, with each determining the other almost surely. Its complement is normalized variation of information, a metric with informationally equivalent representations identified.
 
-⚠️ Automated Elbow Detection Heuristic Warning
+The normalization retains differences in informational resolution. For example, if a four-state measurement is reduced to two equally sized groups, the coarser measurement is completely determined by the finer one but retains only half its information; their normalized MI is $1/2$.
 
-The Entropic Scree does not claim to possess the exact analytical Random Matrix Theory (RMT) bounds (such as the Marchenko-Pastur law) that strictly govern linear sample covariance matrices. Consequently, automated extraction in this space inherently relies on empirical heuristics.
+Population MI is invariant to invertible marginal transformations. Continuous empirical measurements enter this implementation through discretization, so binning resolution, ties and finite-sample estimation remain relevant. The representation is also pairwise: purely joint dependencies with zero pairwise MI, such as a fair-bit XOR construction, are not identified by this matrix.
 
-However, from a pragmatic engineering perspective: **applying an approximate empirical heuristic to a structurally valid, non-linear metric space represents a strict, objective upgrade over applying any "standard" threshold (like the Kaiser criterion) to a fundamentally distorted linear space.**
+### Centering and Euclidean coordinates
 
-Because real-world systems frequently exhibit complex internal hierarchies among correlated drivers — which can produce large internal informational variance drops independent of the idiosyncratic baseline — the automated scanner is provided strictly as an analytical baseline, not a universal algorithmic law. Practitioners should always visually inspect the generated entropic scree plot to formally confirm (or manually override) the detected elbow and verify the true macroscopic generative boundary.
+The map is centered at the measurements' unweighted centroid:
 
----
+$$\mathcal M_c=\mathbf H\mathcal M\mathbf H,
+\qquad \mathbf H=\mathbf I-\frac{\mathbf1\mathbf1^T}{m}.$$
 
-## Actionable Engineering Metrics (AIG & FSIG)
+For $D_{ij}=1-\mathcal M_{ij}$, this is also the classical-scaling construction
 
-The Entropic Scree doesn't just count dimensions; it calculates their exact probabilistic weight, translating abstract eigenvalues into physical **Variable Equivalents**.
+$$\mathcal M_c=-\tfrac12\mathbf H(2\mathbf D)\mathbf H.$$
 
-* **Total Unique Probabilistic Volume:** The dataset's total continuous probability volume, containing both the unique signal volume and the system's idiosyncratic informational variance (Structural Uncertainty, independent measurement error, and unshared signal geometry).
-* **Unique Signal Volume:** The specific proportion of the Total Unique Probabilistic Volume strictly controlled by the signal axes.
-* **Redundant Signal Volume:** The overlapping topological redundancy ($m - R_{eff}$) representing the signature of repeating signal axes.
-* **Total Shared Signal Volume:** The combined volume of the signal axes (the sum of the Unique and Redundant Signal Volumes).
-* **Idiosyncratic Informational Variance:** The remaining probability volume consisting of Structural Uncertainty, independent measurement error, and unshared signal geometry.
-* **AIG (Average Informational Gravity):** How much physical data (in variable equivalents) the average extracted signal factor accounts for.
-* **FSIG (Factor-Specific Informational Gravity):** The specific structural weight of individual signal axes, allowing you to assess the ability to disentangle dominant signals from weak, secondary signals.
-* **Structural Topology Profile:** The normalized mass distribution of the complete extracted signal against the primary topological axis ($\text{FSIG}_{1-K} / \text{FSIG}_1$). This acts as a direct diagnostic of the system's macroscopic network topology, determining whether the variables form a highly centralized, entangled web or a decentralized, modular environment.
+If the centered matrix is positive semidefinite, its coordinates reproduce distances $\sqrt{2(1-\mathcal M_{ij})}$. Otherwise, retaining its positive spectrum provides a Euclidean approximation. The negative spectral mass diagnostic describes the extent of discarded negative eigenvalue mass.
 
----
+Centering establishes a relative reference origin; it does not remove all finite-sample MI bias. The nonlinear similarity matrix is not generally subject to the covariance-specific $N-1$ ceiling, although exact centering limits its rank to $m-1$ and accurate estimation still requires sufficient observations.
 
-## Testing Linear Sufficiency ($\Delta_K$)
+### Bipolar modules: interpreting the poles
 
-The Entropic Scree can also be utilized as a formal diagnostic bounding box for PCA itself. By comparing the rank extracted by classical PCA ($K_{PCA}$) against the structural rank mapped by the Entropic Scree ($K_{roots}$), practitioners can calculate the
-**Dimensional Inflation Index ($\Delta_K$)**:
+For positive eigenvalues, variable coordinates are $L_{ik}=\sqrt{\lambda_k^+}v_{ik}$.
 
-$$ \Delta_K = K_{PCA} - K_{roots} $$
+- **Large same-sign loadings** contribute positively to a pair's represented inner product on that axis and identify a candidate descriptive anchor group.
+- **Large opposite-sign loadings** contribute negatively, expressing relative informational estrangement along that contrast. Loading magnitude determines how strongly each measurement participates.
+- **Near-zero loadings** indicate weak participation in that particular contrast, not necessarily low relevance elsewhere in the map.
 
-* **Convergence ($\Delta_K \approx 0$):** Linear sufficiency confirmed. The data is well-approximated by a simple linear factor model, meaning spurious orthogonalization is negligible and classical PCA is likely sufficient.
-* **Divergence ($\Delta_K \gg 0$):** Severe dimensional inflation detected. Standard linear estimators are fragmenting non-linear synergies or mixed-data shapes, strongly motivating the use of non-linear manifold learning architectures.
+Opposite poles do not mean negative correlation. Other axes can reinforce or offset a pair's relationship: vectors $(1,2)$ and $(-1,2)$ occupy opposite poles on the first axis but have a positive total inner product of $3$. Full-space orthogonality requires the summed inner product to be zero.
 
----
+Pole groups describe observed informational configurations; they are not automatically isolated generating roots. Groups and individual measurements can recur across axes because several contrasts involve them.
 
-## ⚠️ Important Note on Factor Extraction / Dimensionality Reduction
+With `extract_bipolar_modules = TRUE`, version 1.0.1 exports **eigenvector coefficients** $v_{ik}$. By default it selects up to $\max\{1,\lfloor0.20m\rfloor\}$ variables separately from each sign, ordered by absolute magnitude. `bipolar_top_n` adjusts that selection. These coefficients preserve within-axis signs and ordering but differ in scale from the geometric coordinates $L_{ik}$.
 
-As detailed in the formal paper, the Entropic Scree is a **diagnostic oracle, not a linear projection matrix**.
+## Reading the scree and selecting boundaries
 
-Do not attempt to project your raw data onto the extracted eigenvectors via a standard linear dot product ($X \cdot V$). The eigenvectors map shared probability mass (topological geometry), not continuous physical magnitude. You should utilize the Entropic Scree to accurately identify your true generative rank ($K_{roots}$), and then, assuming $\Delta_K$ is not negligible, pass that rank parameter into a non-linear manifold learner (e.g., Autoencoders, UMAP) to execute the actual physical data reduction.
+The logarithmic spectrum makes proportional changes visible across a wide range of eigenvalues. Two boundaries serve different purposes:
 
----
+- **Observed Generative Rank ($K_{roots}$):** the selected endpoint of the primary spectral region, proposed as a diagnostic of resolvable generating structure.
+- **Extended Signal Tail ($K_{extended}$):** the endpoint of the broader region included in shared-volume accounting. Extra directions in this region are not each counted as another root.
 
-## <a id="-usage-r-script"></a>💻 R Simulation (Utilizes Entropic Scree Function 1.0.0 beta)
+Both indices identify the **last retained axis**. A boundary of 20 retains axes 1 through 20.
 
-This repository includes a fully-annotated simulation in R that is available to run now. The script generates a hostile, high-dimensional synthetic environment ($m=20,000$, $N=10,000$, highly centralized and entangled network topology, $\sim 98.5\%$ idiosyncratic informational variance, non-linear distortion), demonstrates the systematic degradation of standard PCA and non-linear baselines (which suffer total structural collapse under even mild generative root entanglement), and utilizes the Entropic Scree to extract the true generative rank ($r=20$).
+The automated Dual-Diagnostic Ensemble first proposes a macroscopic search region. Its Log-Gap rule recommends the primary boundary using relative eigenvalue drops; its Triple-Tap rule recommends the extended boundary using departure from a local tail trajectory. Automatically,
 
-> ⏳ Hardware & Runtime Warning: This simulation is extremely heavy on both RAM and CPU. Generating the synthetic environment (expanding 20 generative roots into 20,000 proxies via a 21,759-term non-linear design matrix) is just as memory- and time-intensive as computing the 200 million pairwise dependencies for the final NMI matrix. A minimum of 16GB of RAM (32GB+ recommended) is strongly advised to prevent out-of-memory crashes. Depending on your hardware, generating the data and executing all four baseline models may take anywhere from 1 to 4+ hours. Step away - the script will automatically generate the final comparison plots when it finishes.
+$$K_{roots}=K_{log},\qquad K_{extended}=\max(K_{log},K_{tap}).$$
 
-**Notes:**
-* **Automatic Setup:** The script is self-contained. It will automatically detect and install missing dependencies (e.g., `Rcpp`, `data.table`, `ggplot2`) upon the first run.
-* **C++ Backend:** The pairwise mutual information engine is written in C++ via `Rcpp` and utilizes `OpenMP` for rapid multi-threading in RAM.
-* **Automated End-to-End Execution:** The interactive prompt has been disabled for this simulation so you can seamlessly "select all and run" the entire file from beginning to end. The engine relies on the dual Log-Gap and Triple-Tap convergence to extract the rank and complete the baseline comparisons without requiring manual console input.
+These are heuristic recommendations to inspect against the plotted spectrum. A smooth decline need not resolve a distinct boundary. The nominal threshold used by Triple-Tap is not an established whole-procedure error guarantee.
 
-### Quick Start
-Just copy and paste the following block into your R console (and press Enter) to automatically download and open the simulation script directly:
+The relationship between $K_{roots}$ and generating count is evaluated empirically. They need not coincide in every construction: $r$ independent information-equivalent blocks, for example, produce a centered map of rank $r-1$.
 
-```R
-# 1. Define the direct URL to the raw script on GitHub
-url <- "[https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R.Simulation%20-%20ENLI.R](https://raw.githubusercontent.com/tjleestjohn/entropic-scree/main/Entropic.Scree.R.Simulation%20-%20ENLI.R)"
+## Informational volume and gravity
 
-# 2. Define what you want to name the file on your computer
+The published implementation uses working spectral weights $\eta_i=\max(10^{-9},\lambda_i)$. Define
+
+$$p_i=\frac{\eta_i}{\sum_j\eta_j},\qquad
+R_{eff}=\exp\left(-\sum_i p_i\ln p_i\right),\qquad
+P_{sig}=\frac{\sum_{i=1}^{K_{extended}}\eta_i}{\sum_j\eta_j}.$$
+
+**Total Unique Probabilistic Volume ($R_{eff}$)** is an entropy effective rank: the effective number of equally weighted spectral directions. It describes the distribution of spectral weight, rather than the number of generating mechanisms.
+
+The framework expresses its allocations in **variable equivalents**, relative to the retained measurement count:
+
+| Quantity | Definition | Interpretation |
+|---|---|---|
+| Redundant Signal Volume | $m-R_{eff}$ | Allocation associated with concentration of spectral weight. |
+| Unique Signal Volume | $P_{sig}R_{eff}$ | Effective spectral volume allocated through the extended boundary. |
+| Total Shared Signal Volume ($TSV$) | $(m-R_{eff})+P_{sig}R_{eff}$ | Sum of the redundant and unique shared allocations. |
+| Idiosyncratic Informational Volume | $(1-P_{sig})R_{eff}$ | Remaining allocation outside that shared-volume accounting. |
+
+**Total shared plus idiosyncratic volume equals $m$.** Unique and redundant shared volumes are components of the total shared volume, not additional amounts to add on top of it.
+
+For example, $m=100$, $R_{eff}=80$ and $P_{sig}=0.25$ give 20 redundant, 20 unique shared and 60 idiosyncratic variable equivalents. Total shared volume is 40.
+
+These are spectral allocations, not direct measurements of random-error fractions or joint Shannon entropy. Idiosyncratic volume can include measurement error, estimation effects and unresolved structure. Centering also contributes to the accounting: exactly independent population measurements have $R_{eff}=m-1$ under zero clipping, producing one redundant unit by convention.
+
+### AIG, FSIG and the Structural Topology Profile
+
+**Average Informational Gravity** allocates total shared volume per primary axis:
+
+$$AIG=\frac{TSV}{K_{roots}}.$$
+
+**Factor-Specific Informational Gravity**, the paper's formal name for FSIG, distributes that volume across individual primary informational axes:
+
+$$FSIG_i=\frac{\eta_i}{\sum_{j=1}^{K_{roots}}\eta_j}TSV.$$
+
+Consequently, $\sum_i FSIG_i=TSV$ and the mean FSIG is AIG. These summarize axis allocations; an axis need not correspond to one generating root.
+
+The **Structural Topology Profile** is
+
+$$T_i=\frac{FSIG_i}{FSIG_1}=\frac{\eta_i}{\eta_1}.$$
+
+It shows whether the primary map is dominated by one direction, several leading directions, or a more even distribution. Loadings and domain knowledge help interpret that shape: eigenvalues alone do not determine cluster membership, network centralization or independent mechanisms.
+
+## Comparing with PCA: the Dimensional Inflation Index
+
+$$\Delta_K=K_{PCA}-K_{roots}.$$
+
+This compares the dimension selected from a specified PCA representation with the primary Entropic Scree boundary. Report the preparation and selection rule used for each.
+
+- **Similar selected dimensions** are compatible with a compact linear description but do not establish linear dependence or identical captured structure.
+- **Positive divergence** can reveal linear representational expansion relative to the informational boundary, motivating a more compact nonlinear representation. Coding, estimation and selection rules also affect the comparison.
+- **Negative differences** are possible and warrant examining the representations and boundary choices.
+
+The main experiment reports a PCA Kaiser count of 5,762 and $K_{roots}=20$, giving $\Delta_K=5,742$. The Kaiser count is an explicitly identified alternative selection rule, not a claimed visual elbow.
+
+## From diagnostic mapping to downstream models
+
+Entropic Scree maps **measurements**. It does not supply an observation-level reconstruction rule. Multiplication of a numeric data matrix by its eigenvectors is algebraically possible, but those scores depend on coding and units and do not automatically recover latent record coordinates.
+
+The diagnostic can guide a downstream representation: primary rank suggests its size, pole loadings describe observed groupings, and gravity summarizes spectral allocation. A nonlinear autoencoder can then learn from the original records. Reconstruction quality, stability and interpretation of that representation require their own assessment.
+
+## Simulation code
+
+The paper's experiments use the self-contained **1.0.0 beta** function embedded in the historical simulation script. Ordinary package use should start with CRAN; the following GitHub scripts identify the reviewed experimental implementation:
+
+- [Main simulation](https://github.com/tjleestjohn/Entropic-Scree/blob/064dcbd1401633c16669fe3d9826c6b37a9fe2d8/Entropic.Scree.R.Simulation%20-%20ENLI.R)
+- [Binning-ablation companion](https://github.com/tjleestjohn/Entropic-Scree/blob/064dcbd1401633c16669fe3d9826c6b37a9fe2d8/Appendix.B.Binning.Ablation.R)
+
+### What the paper reports
+
+The main construction uses 10,000 observations, 20,000 generated measurements and 20 Gaussian generating coordinates. Measurements combine nonlinear terms, continuous and binary manifestations, proxy-score perturbations and measurement error. A pool of 21,759 candidate generating terms supplies the nonlinear expansion.
+
+The manuscript reports $K_{roots}=20$ and $K_{extended}=211$ in the main run. The primary boundary also remained 20 at the three tested bin targets—22, 100 and 208—while effective volume and gravity changed substantially. The 208-bin target was derived from Freedman–Diaconis recommendations but supplied to the same equal-frequency discretizer; it was not a switch to ordinary equal-width FD binning.
+
+Additional correlated-root runs retained a transition near the generating count. These are findings for the configurations studied, not a general invariance theorem. The evaluated comparators were standardized PCA, rank-PCA and one specified RBF Kernel PCA construction.
+
+### Historical implementation versus CRAN 1.0.1
+
+The MI estimator, normalization, centering, eigenvalue floor, spectral entropy and gravity formulas are shared. Automatic recommendations differ:
+
+- The historical macro-gap reference uses a 5% offset and unfiltered reference gaps; CRAN 1.0.1 uses 10%, filters large reference gaps and restricts candidate positions.
+- The historical tail scan defaults to a fixed 20-value window and scans to index 1; the published version adapts the window, exposes `fwer_alpha` and ends at the primary recommendation.
+- Historical optional pole output defaults to ten coefficients per sign; the package defaults to 20% of the retained measurement count per sign.
+
+These differences can change boundaries and therefore gravity summaries. Use the archived implementation when reproducing the reported experiments, and label any comparison with the CRAN package separately.
+
+### Download and inspect the scripts
+
+```r
+revision <- "064dcbd1401633c16669fe3d9826c6b37a9fe2d8"
+base_url <- paste0(
+  "https://raw.githubusercontent.com/tjleestjohn/Entropic-Scree/",
+  revision, "/"
+)
+
 file_name <- "Entropic.Scree.R.Simulation - ENLI.R"
-
-# 3. Download just the script
-download.file(url, destfile = file_name)
-
-# 4. Open the script in your editor (like RStudio)
+download.file(
+  paste0(base_url, "Entropic.Scree.R.Simulation%20-%20ENLI.R"),
+  destfile = file_name,
+  mode = "wb"
+)
 file.edit(file_name)
+
+download.file(
+  paste0(base_url, "Appendix.B.Binning.Ablation.R"),
+  destfile = "Appendix.B.Binning.Ablation.R",
+  mode = "wb"
+)
 ```
 
-### Advanced Validation: Discretization Ablation (Appendix B)
-The repository also includes `Appendix.B.Binning.Ablation.R`. This script reproduces the stress-test from the paper's appendix, proving that while extreme binning heuristics (like Freedman-Diaconis) artificially compress probabilistic volume ($R_{eff}$), the extraction of the underlying generative rank ($K_{roots} = 20$) remains mathematically invariant. It also automatically generates the 1x3 panel graph showing the generative signal remaining cleanly separated despite the artificial compression of the topological space (driven by finite-sample estimation error).
+Inspect the scripts before running them in a dedicated R session: the main script clears the workspace, installs dependencies and compiles its embedded C++ code. Source compilation requires an appropriate compiler toolchain, such as Rtools on Windows. Also ensure `MASS` and `stringr` are installed; correlated-root configurations require `clusterGeneration`.
 
-**Instructions:** Run this script in the exact same R workspace **immediately following** the successful execution of the main simulation script. It relies on the synthetic `observed_data` matrix already generated in your computer's memory by the primary simulation, ensuring you don't have to wait for the hostile environment to be generated twice.
+Run the ablation **after the main simulation in the same session**. It reuses the generated data, baseline result and embedded function. The main simulation disables interactive rank revision for unattended execution.
 
----
+**Resource planning:** This is a large dense-matrix experiment. A single $20{,}000\times20{,}000$ double-precision matrix occupies approximately 3.2 GB before temporary copies, eigenvectors, generated data and comparator models. Dense eigendecomposition generally scales as $O(m^3)$ time with $O(m^2)$ matrix storage. Test a smaller configuration before attempting the full experiment; runtime and peak memory depend on hardware, numerical libraries and settings.
 
-## Citation & Contact
+For reproducibility, retain the script revision, package or embedded-function version, seed, preparation settings, retained measurement count, both selected boundaries and numerical outputs with each run.
 
-The full methodology is formally presented in Zenodo Preprint.
+## Citation and related resources
 
 ```bibtex
 @misc{leestjohn2026entropic-scree,
-  title={The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
-  author={Lee-St. John, Terrence J.},
-  publisher={Zenodo},
-  doi={10.5281/zenodo.22028087},
-  url={[https://doi.org/10.5281/zenodo.22028087](https://doi.org/10.5281/zenodo.22028087)},
-  year={2026}
+  title = {The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
+  author = {Lee-St. John, Terrence J.},
+  publisher = {Zenodo},
+  doi = {10.5281/zenodo.22028087},
+  url = {https://doi.org/10.5281/zenodo.22028087},
+  year = {2026}
 }
 ```
 
-| **Related Resources** | **Link** |
-| --- | --- |
-| **The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems (Zenodo Preprint)** | [Entropic Scree Zenodo Preprint](https://doi.org/10.5281/zenodo.22028087) |
-| **From Garbage to Gold (G2G): A Data Architectural Theory of Predictive Robustness (arXiv Preprint)** | [G2G arXiv Preprint](https://arxiv.org/abs/2603.12288) |
-| **G2G arXiv Preprint Simulation Repository** | [G2G GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
-| **Contact First Author** | [Email Me](mailto:terry@enli.com.au) |
-| **Enli Official Website** | [Enli: Predictive systems that remain stable under change](https://www.enli.com.au) |
+For the software citation, run `citation("Entropic.Scree")` in R. The package identifier is [10.32614/CRAN.package.Entropic.Scree](https://doi.org/10.32614/CRAN.package.Entropic.Scree).
+
+| Resource | Link |
+|---|---|
+| Entropic Scree preprint | [Zenodo](https://doi.org/10.5281/zenodo.22028087) |
+| Published R package | [CRAN](https://CRAN.R-project.org/package=Entropic.Scree) |
+| From Garbage to Gold (G2G) preprint | [arXiv](https://arxiv.org/abs/2603.12288) |
+| G2G simulation repository | [GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
+| Author contact | [terry@enli.com.au](mailto:terry@enli.com.au) |
+| Enli | [www.enli.com.au](https://www.enli.com.au) |
+
+Distributed under the [Apache License 2.0](https://github.com/tjleestjohn/Entropic-Scree/blob/main/LICENSE).
