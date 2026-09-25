@@ -10,7 +10,7 @@
 [![CRAN](https://img.shields.io/badge/CRAN-v1.0.1-blue?style=for-the-badge)](https://CRAN.R-project.org/package=Entropic.Scree)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/Entropic-Scree/blob/main/LICENSE)
 
-**[See the maps](#see-the-map) · [Explore its uses](#what-can-you-use-it-for) · [Install in R](#get-started-in-r)**
+**[See the maps](#see-the-map) · [Install in R](#get-started-in-r)**
 
 ## What does Entropic Scree do?
 
@@ -18,18 +18,17 @@ A dataset can contain hundreds or thousands of measurements without representing
 
 **Entropic Scree helps reveal how those measurements share information.** It compares their information relationships, organizes them into a map, and examines how much structure is concentrated in its leading directions.
 
-Its outputs help answer four questions:
+Its outputs connect structural questions with practical uses:
 
-- **How many primary informational directions stand out?** A scree plot and recommended boundaries help select a compact primary representation and a broader region of weaker structure.
-- **Which measurements belong together?** Loading patterns and joint-coordinate maps reveal observed groupings and contrasts that can be explored across multiple axes.
-- **How much of the informational volume is allocated to shared structure?** Volume summaries distinguish shared and idiosyncratic allocations.
-- **How substantial is that shared structure per primary axis?** Informational gravity describes the allocated shared footprint, both on average and for individual axes.
+- **Explore which measurements belong together.** Examine how survey items, symptoms, sensors or other features share information. Use the map to investigate unexpected groupings, overlapping measurements and complementary coverage before making decisions about measurement selection.
+- **Choose a candidate size for a downstream model.** The scree plot recommends a primary rank and a broader region of weaker structure. The primary rank can guide the size of a nonlinear representation, such as an autoencoder bottleneck; that model still requires its own assessment of fit and generalization.
+- **Understand shared structure in noisy data.** Informational volume summaries distinguish shared and idiosyncratic allocations. Average Informational Gravity (AIG) and Factor-Specific Informational Gravity (FSIG) describe the allocated shared footprint per primary axis. A small overall shared percentage can still correspond to a substantial footprint when many measurements express a compact structure.
 
-**The map contains measurements—not people, records or automatically identified causes.** It is a way to understand the organization of what you measured before deciding how to model individual observations.
+**Each point in the map represents a measurement.** The map helps you understand what you measured before modeling individual observations. Its groupings support substantive investigation; they do not automatically identify latent causes or determine which variables should be removed.
 
 ## Why use it alongside established methods?
 
-PCA is useful for summarizing linear variation. Entropic Scree addresses a different question: how do measurements share information when their relationships include nonlinear transformations, thresholds and categorical states?
+PCA is useful for summarizing linear variation. Entropic Scree addresses a different question: how do measurements share information when their relationships include nonlinear transformations, thresholds and categorical states? Comparing their selected dimensions can help investigate whether nonlinear expressions of shared processes require a much larger linear representation, and guide the choice of a downstream model.
 
 | Common analytical challenge | What Entropic Scree adds |
 |---|---|
@@ -52,45 +51,23 @@ The analysis retained **20 primary Informational Axes**. The figures show only t
 
 ### Two axes reveal distinct concentrations of measurements
 
-![Two-dimensional information map of symptom measurements, with labelled examples in three separated outer groups and fatigue and delusion highlighted.](assets/mental-health-axes-1-2.png)
+<p align="center">
+  <img src="mental-health-axes-1-2.png" alt="Two-dimensional information map of symptom measurements, with labelled examples in three separated outer groups and fatigue and delusion highlighted." width="600">
+</p>
 
 Measurements around **vomiting**, **fidgeting** and **blackouts** occupy distinct regions. Three labels in each outer group provide context, while many other measurements remain close together in the centre.
 
 ### A third axis reveals separation hidden in the first view
 
-![Three-dimensional information map of the same measurements, showing additional separation between fatigue and delusion and the same eleven variable labels.](assets/mental-health-axes-1-2-3.png)
+<p align="center">
+  <img src="mental-health-axes-1-2-3.png" alt="Three-dimensional information map of the same measurements, showing additional separation between fatigue and delusion and the same eleven variable labels." width="600">
+</p>
 
 Adding the third axis separates measurements that appeared close in 2D, including **fatigue** (orange) and **delusion** (purple). The same eleven measurements are labelled in both figures. Teal marks the other measurements; colours do not assign cluster membership.
 
-This is the value of exploring several informational directions together: a single axis or a flat view can conceal distinctions. Additional axes can reveal further separation. The examples illustrate measurement mapping in synthetic educational data, not clinically validated symptom groups.
+This is the value of looking beyond individual pole summaries. Bipolar modules describe the two ends of each axis; the joint map lets you examine how measurements grouped together on one axis separate on another. Additional axes can reveal further distinctions. The examples illustrate measurement mapping in synthetic educational data, not clinically validated symptom groups.
 
 The paper also describes an **eigenvalue-scaled view**, which preserves the relative spectral strength of the axes. The equal-axis view shown here emphasizes distinctions across the selected directions. The choice affects distances and visual emphasis, not the underlying eigendecomposition.
-
-## What can you use it for?
-
-### Explore how a measurement system is organized
-
-Examine which survey items, symptoms, sensors or other features express overlapping information. Investigate groups that are difficult to see from variable names or individual pairwise correlations alone.
-
-### Look beyond individual clusters
-
-Inspect how measurements positioned together on one axis separate on another. Bipolar modules summarize the two poles of an axis; the joint map provides a fuller view of the relationships across axes.
-
-### Guide the size of a downstream representation
-
-Use the selected primary rank as a candidate size for a nonlinear representation, such as an autoencoder bottleneck. The downstream model still requires its own assessment of fit and generalization; the diagnostic does not itself extract latent causes.
-
-### Understand shared structure in a noisy dataset
-
-A small overall shared-signal percentage can coexist with a substantial shared footprint per primary axis when many measurements express a compact structure. Average Informational Gravity (AIG) and Factor-Specific Informational Gravity (FSIG) make those allocations explicit in the data as observed.
-
-### Investigate measurement overlap and coverage
-
-Use the map to identify measurements worth examining for overlapping information, unusual relationships or complementary coverage. These are starting points for substantive review, not automatic instructions to remove variables.
-
-### Compare linear and informational descriptions
-
-Compare the Entropic Scree with PCA to investigate whether nonlinear measurement relationships produce a much larger linear representation. Differences between their selected dimensions can guide further modeling questions.
 
 ## What does the package provide?
 
