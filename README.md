@@ -5,7 +5,7 @@
 *[Terrence J. Lee-St. John, PhD](mailto:terry@enli.com.au)*  
 *[Enli: Predictive systems that remain stable under change](https://www.enli.com.au)*
 
-[![Read Preprint](https://img.shields.io/badge/Read_Preprint-Zenodo-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.22028087)
+[![Read Preprint](https://img.shields.io/badge/Read_Preprint-Zenodo-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.22028086).
 [![CRAN](https://img.shields.io/badge/CRAN-v1.0.1-blue?style=for-the-badge)](https://CRAN.R-project.org/package=Entropic.Scree)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/tjleestjohn/Entropic-Scree/blob/main/LICENSE)
 
@@ -284,7 +284,7 @@ For the software citation, run `citation("Entropic.Scree")` in R. The package id
 
 | Resource | Link |
 |---|---|
-| Entropic Scree preprint | [Zenodo](https://doi.org/10.5281/zenodo.22028087) |
+| Entropic Scree preprint | [Zenodo](https://doi.org/10.5281/zenodo.22028086)|
 | Published R package | [CRAN](https://CRAN.R-project.org/package=Entropic.Scree) |
 | From Garbage to Gold (G2G) preprint | [arXiv](https://arxiv.org/abs/2603.12288) |
 | G2G simulation repository | [GitHub](https://github.com/tjleestjohn/from-garbage-to-gold) |
