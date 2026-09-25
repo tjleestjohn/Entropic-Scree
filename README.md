@@ -1,4 +1,4 @@
-# The Entropic Scree:<br>An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems
+# The Entropic Scree:<br>An Information-Theoretic Mapping Framework for Estimating Intrinsic Rank and Informational Gravity in Tabular Systems
 
 ###### Initial Methods & Function Release: August 16, 2026 (Happy Birthday, Dad)
 
@@ -271,11 +271,11 @@ For reproducibility, retain the script revision, package or embedded-function ve
 
 ```bibtex
 @misc{leestjohn2026entropic-scree,
-  title = {The Entropic Scree: An Information-Theoretic Diagnostic Framework for Intrinsic Rank and Informational Gravity in Tabular Systems},
+  title = {The Entropic Scree: An Information-Theoretic Mapping Framework for Estimating Intrinsic Rank and Informational Gravity in Tabular Systems},
   author = {Lee-St. John, Terrence J.},
   publisher = {Zenodo},
-  doi = {10.5281/zenodo.22028087},
-  url = {https://doi.org/10.5281/zenodo.22028087},
+  doi = {10.5281/zenodo.22028086},
+  url = {https://doi.org/10.5281/zenodo.22028086},
   year = {2026}
 }
 ```
