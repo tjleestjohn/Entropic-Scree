@@ -103,7 +103,7 @@ These figures illustrate measurement mapping in synthetic educational data. They
 
 ## Get started in R
 
-Install the R implementation from [CRAN](https://CRAN.R-project.org/package=Entropic.Scree):
+Install the R implementation from [CRAN](https://CRAN.R-project.org/package=Entropic.Scree). Version **1.0.2** returns every retained measurement’s loading on every selected primary informational axis by default.
 
 ```r
 install.packages("Entropic.Scree")
@@ -124,19 +124,29 @@ results <- Entropic.Scree(
   extract_bipolar_modules = TRUE
 )
 
-results$K_roots         # Selected Primary Informational Rank
-results$K_extended      # Inclusive Extended Signal Tail boundary
-results$AIG             # Average Informational Gravity
-results$FSIG_final      # Gravity allocated to each primary axis
-results$bipolar_modules # Measurements contributing to each pole
-results$eigenvectors   # Full eigenvector matrix
+results$K_roots              # Selected Primary Informational Rank
+results$K_extended           # Inclusive Extended Signal Tail boundary
+results$AIG                  # Average Informational Gravity
+results$FSIG_final           # Gravity allocated to each primary axis
+results$measurement_loadings # All retained measurements × selected primary axes
+results$bipolar_modules      # Measurements contributing to each pole
+results$eigenvectors         # Full eigenvector matrix
 ```
 
 The interactive interface lets you inspect and revise the recommended boundaries. Set `interactive_mode = FALSE` for unattended execution.
 
+The `measurement_loadings` matrix contains raw signed eigenvector coefficients: equal-axis coordinates, with measurements in rows and selected primary axes in columns. Every loading is included, including zeros. These are not eigenvalue-scaled coordinates or observation-level factor scores.
+
 The full eigenvector matrix includes directions outside the selected primary region. For measurement mapping, explicitly choose the retained axis set and coordinate scaling.
 
 The companion `Update.Entropic.Scree()` recalculates rank-dependent summaries from an existing result without repeating the pairwise information calculation or eigendecomposition.
+
+Missing values are rejected by default. Version 1.0.2 provides two explicit options:
+
+- `categorical_missing = "category"` represents missing categorical values as a distinct missing state.
+- `numeric_missing = "median_indicator"` fills missing numeric values with the measurement’s observed median and adds a binary indicator identifying the originally missing cells.
+
+These options are independent and should be selected deliberately. Numeric columns containing only missing values, and infinite numeric values, are rejected under either policy.
 
 Consult the documentation matching your installed package for missing-data options, retention criteria, loading-output defaults, and returned fields:
 
@@ -146,7 +156,7 @@ help("Entropic.Scree", package = "Entropic.Scree")
 help("Update.Entropic.Scree", package = "Entropic.Scree")
 ```
 
-Nominal numerical codes should be explicitly represented as categorical measurements. The bin target must accommodate the represented categorical vocabularies; increasing it also changes the discretization target for numeric measurements.
+Nominal numerical codes should be explicitly represented as categorical measurements. The bin target must accommodate the represented categorical vocabularies, including any opted-in missing state; increasing it also changes the discretization target for numeric measurements.
 
 Large measurement counts can require substantial memory and computation because the method constructs and decomposes a dense measurement-by-measurement matrix.
 
@@ -201,6 +211,15 @@ Use a dedicated R session and inspect the configuration before starting.
 - Both scripts support resuming completed stages. Use the same settings and output location when resuming.
 
 The full experiments are computationally demanding. The scripts save numerical summaries and figures; large generated-data checkpoints are removed after successful completion.
+
+## Research materials
+
+- [Saved simulation results](Entropic-Scree-Simulation-Results.zip)
+- [Archival data and code deposit — Harvard Dataverse](https://doi.org/10.7910/DVN/VEFDZ3)
+
+The materials include simulation scripts, saved numerical results, execution settings, software provenance, and supporting figures. The simulation scripts specify how to regenerate the synthetic datasets; the generated datasets themselves were not retained as permanent outputs.
+
+The Harvard Dataverse deposit is currently a draft and may not yet be publicly accessible. The simulation scripts and saved results are available through this repository.
 
 ## What did the simulations show?
 
