@@ -3,9 +3,6 @@
 
 ###### Initial Methods & Function Release: August 16, 2026 (Happy Birthday, Dad)
 
-*[Terrence J. Lee-St. John, PhD](mailto:terry@enli.com.au)*  
-*[Enli: Predictive systems that remain stable under change](https://www.enli.com.au)*
-
 [![Read Preprint](https://img.shields.io/badge/Read_Preprint-Zenodo-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.22028086)
 [![CRAN](https://img.shields.io/badge/R_Package-CRAN-blue?style=for-the-badge)](https://CRAN.R-project.org/package=Entropic.Scree)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](LICENSE)
@@ -284,7 +281,5 @@ Package DOI: [10.32614/CRAN.package.Entropic.Scree](https://doi.org/10.32614/CRA
 - [Entropic Scree preprint](https://doi.org/10.5281/zenodo.22028086)
 - [From Garbage to Gold (G2G) preprint](https://arxiv.org/abs/2603.12288)
 - [G2G simulation repository](https://github.com/tjleestjohn/from-garbage-to-gold)
-- [Enli](https://www.enli.com.au)
-- [Contact Terrence](mailto:terry@enli.com.au)
 
 Distributed under the [Apache License 2.0](LICENSE).
